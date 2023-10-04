@@ -1,4 +1,4 @@
-# ETH_MP_Alpine_Water_Springs
+# ETH_MP_Alpine_Water_Springs_Modelling
 WABESense - Model based characterisation of Alpine Water Springs
 
 Simple overview of use/purpose.
