@@ -9,10 +9,12 @@ def import_spring_data(data_directory):
     spring_data_paths = []
     spring_data_dfs = []
 
-    for filename in os.listdir(data_directory):
+    files = os.listdir(data_directory)
+    files.sort()
+    for filename in files:
         filepath = os.path.join(data_directory, filename)
         if os.path.isfile(filepath) and filename.lower().endswith('.csv'):  # check only csv files
-            spring_names.append(filename.split('.')[2].replace('_discharge', ''))
+            spring_names.append(filename.replace('_discharge.csv', ''))
             spring_description.append(spring_description_from_filename(filename))
             spring_data_paths.append(filepath)
             spring_data_dfs.append(import_data_from_csv_file(filepath))
@@ -27,7 +29,7 @@ def import_data_from_csv_file(filepath):
 
 
 def import_data_from_url():
-    working = False
+    pass
 
 
 def spring_description_from_filename(filename):

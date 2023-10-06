@@ -1,10 +1,10 @@
 # ETH_MP_Alpine_Water_Springs_Modelling
-WABESense - Model based characterisation of Alpine Water Springs
-
-Simple overview of use/purpose.
+Model based characterisation of Alpine Water Springs  
+Master Project at ETH Zürich based on the [WABESense](https://www.aramis.admin.ch/Grunddaten/?ProjectID=47484) project
 
 ## Description
 
+Readme is not finished yet. Still contains content of a template  
 An in-depth paragraph about your project and overview of use.
 
 ## Getting Started
@@ -21,8 +21,8 @@ An in-depth paragraph about your project and overview of use.
 
 ### Executing program
 
-* How to run the program
-* Step-by-step bullets
+* The program is run within the Notebook MP_Alpine_Water_Springs_Modelling.ipynb
+* The data handling, manipulation and visualization are implemented in separate python files
 ```
 code blocks for commands
 ```
@@ -35,11 +35,9 @@ command to run if program contains helper info
 ```
 
 ## Authors
-
-Contributors names and contact info
-
-ex. Dominique Pizzie  
-ex. [@DomPizzie](https://twitter.com/dompizzie)
+[Noah Nydegger](https://github.com/noahnydegger)  
+[Ramun Bär]()  
+[Dr. Juan Pablo Carbajal](https://github.com/kakila)  
 
 ## Version History
 
