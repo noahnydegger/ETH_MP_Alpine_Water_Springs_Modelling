@@ -79,41 +79,41 @@ def plot_meteo_precipitation(df, station, path_to_plot_folder):
     plt.close(fig)
 
 
-def plot_Ulrika_static(spring_df, meteo_df, path_to_plot_folder, resolution='hourly', start=None, end=None):
+def plot_Ulrika_static(spring_df, precip_df, path_to_plot_folder, resolution='hourly', start=None, end=None):
     # Define color codes
     spring_c = 'blue'
     precip_c = 'midnightblue'
-
-    # Convert start and end to datetime objects using pd.to_datetime
-    start = pd.to_datetime(start) if start is not None else precip_df.index.min()
-    end = pd.to_datetime(end) if end is not None else precip_df.index.max()
-    # select subset of data
-    spring_df = spring_df[pd.to_datetime(start):pd.to_datetime(end)]
-    meteo_df = meteo_df[pd.to_datetime(start):pd.to_datetime(end)]
-
-    # Create a figure
-    fig, ax_flow = plt.subplots(figsize=(15, 9))
-
-    # Plot the spring data
-    ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c, label='spring discharge')
 
     # Define aggregation frequencies using a dictionary
     aggregation_freqs = {'daily': 'D', 'monthly': 'M'}
     barwidths = {'daily': 1, 'monthly': 20}
 
     if resolution == 'hourly':
-        precip_df = meteo_df
+        precip_df = precip_df
         barwidth = 1
     # Check if the selected resolution is in the dictionary
     elif resolution in aggregation_freqs:
         aggregation_freq = aggregation_freqs[resolution]
         barwidth = barwidths[resolution]
         # Aggregate the precipitation data
-        precip_df = meteo_df['rre150h0'].resample(aggregation_freq).sum()
+        precip_df = precip_df['rre150h0'].resample(aggregation_freq).sum()
         precip_df = pd.DataFrame(precip_df, columns=['rre150h0'])
         precip_df.index = precip_df.index.to_period(aggregation_freq).to_timestamp(aggregation_freq)
     else:
         raise ValueError("Invalid resolution. Use 'hourly', 'daily', or 'monthly'.")
+
+    # Convert start and end to datetime objects using pd.to_datetime
+    start = pd.to_datetime(start) if start is not None else precip_df.index.min()
+    end = pd.to_datetime(end) if end is not None else precip_df.index.max()
+    # select subset of data
+    spring_df = spring_df[pd.to_datetime(start):pd.to_datetime(end)]
+    precip_df = precip_df[pd.to_datetime(start):pd.to_datetime(end)]
+
+    # Create a figure
+    fig, ax_flow = plt.subplots(figsize=(15, 9))
+
+    # Plot the spring data
+    ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c, label='spring discharge')
 
     # Calculate the width based on the number of data points and the width of the x-axis
     barwidth = (precip_df.index[-1] - precip_df.index[0]) / len(precip_df)
@@ -150,20 +150,33 @@ def plot_Ulrika_static(spring_df, meteo_df, path_to_plot_folder, resolution='hou
     plt.close(fig)
 
 
-def plot_Ulrika_interactive(spring_df, meteo_df, resolution='hourly', start=None, end=None):
+def plot_spring_meteo_interactive(spring_df, precip_df, spring_name, meteo_station, resolution='hourly', start=None, end=None):
     from plotly.subplots import make_subplots
 
+    if resolution == 'hourly':
+        precip_df = precip_df
+    else:
+        # Aggregate the precipitation data
+        aggregation_freqs = {'daily': 'D', 'monthly': 'M'}
+        if resolution in aggregation_freqs:
+            aggregation_freq = aggregation_freqs[resolution]
+            precip_df = precip_df['rre150h0'].resample(aggregation_freq).sum()
+            precip_df = pd.DataFrame(precip_df, columns=['rre150h0'])
+            precip_df.index = precip_df.index.to_period(aggregation_freq).to_timestamp(aggregation_freq)
+        else:
+            raise ValueError("Invalid resolution. Use 'hourly', 'daily', or 'monthly'.")
+
     # Convert start and end to datetime objects using pd.to_datetime
-    start = pd.to_datetime(start) if start is not None else meteo_df.index.min()
-    end = pd.to_datetime(end) if end is not None else meteo_df.index.max()
+    start = pd.to_datetime(start) if start is not None else precip_df.index.min()
+    end = pd.to_datetime(end) if end is not None else precip_df.index.max()
 
     # Select a subset of data within the specified date range
     spring_df = spring_df[pd.to_datetime(start):pd.to_datetime(end)]
-    meteo_df = meteo_df[pd.to_datetime(start):pd.to_datetime(end)]
+    precip_df = precip_df[pd.to_datetime(start):pd.to_datetime(end)]
 
     # Define color codes
-    spring_c = 'blue'
-    precip_c = 'midnightblue'
+    spring_c = 'lightgreen'
+    precip_c = 'blue'
 
     # Create an interactive figure using Plotly
     # Create figure with secondary y-axis
@@ -172,27 +185,14 @@ def plot_Ulrika_interactive(spring_df, meteo_df, resolution='hourly', start=None
     # Plot the spring data on the primary y-axis
     fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df['discharge(L/min)'], line=dict(width=1, color=spring_c), mode='lines', name='spring discharge'), secondary_y=False)
 
-    if resolution == 'hourly':
-        precip_df = meteo_df
-    else:
-        # Aggregate the precipitation data
-        aggregation_freqs = {'daily': 'D', 'monthly': 'M'}
-        if resolution in aggregation_freqs:
-            aggregation_freq = aggregation_freqs[resolution]
-            precip_df = meteo_df['rre150h0'].resample(aggregation_freq).sum()
-            precip_df = pd.DataFrame(precip_df, columns=['rre150h0'])
-            precip_df.index = precip_df.index.to_period(aggregation_freq).to_timestamp(aggregation_freq)
-        else:
-            raise ValueError("Invalid resolution. Use 'hourly', 'daily', or 'monthly'.")
-
     # Plot the precipitation data on the secondary y-axis
-    fig.add_trace(go.Scatter(x=precip_df.index, y=precip_df['rre150h0'], marker=dict(color=precip_c, opacity=0.7), name=f'precipitation {resolution} sum', yaxis="y2"), secondary_y=True)
-
+    #fig.add_trace(go.Scatter(x=precip_df.index, y=precip_df['rre150h0'], marker=dict(color=precip_c, opacity=0.7), name=f'precipitation {resolution} sum', yaxis="y2"), secondary_y=True)
+    fig.add_trace(go.Bar(x=precip_df.index, y=precip_df['rre150h0'], marker=dict(color=precip_c, line=dict(color=precip_c, width=1)), name=f'precipitation {resolution} sum', yaxis="y2"), secondary_y=True)
     # Configure the secondary y-axis
     fig.update_layout(
         yaxis2=dict(
-            title=f'Precipitation {resolution} sum [mm/{resolution[0]}]',
-            overlaying='y',
+            title=f'Precipitation {resolution} sum [mm/{resolution[0].lower()}]',
+            #overlaying='y',
             side='right',
             autorange="reversed"  # Reverse the y-axis
         ),
@@ -203,7 +203,7 @@ def plot_Ulrika_interactive(spring_df, meteo_df, resolution='hourly', start=None
 
     # Configure plot layout and labels
     fig.update_layout(
-        title='Ulrika spring and Freienbach station',
+        title=f'{spring_name} spring and {meteo_station} station',
         xaxis_title='Datetime',
         yaxis_title='Discharge [L/min]',
         xaxis=dict(tickangle=45),

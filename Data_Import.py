@@ -107,9 +107,10 @@ def create_dataframe_from_data_list(data_list, delimiter=';'):
     df = pd.DataFrame(data_dict)
 
     # Convert specific columns to appropriate data types if needed
-    df['time'] = pd.to_datetime(df['time'], format=time_format)
+    df.rename(columns={'time': 'datetime'}, inplace=True)
+    df['datetime'] = pd.to_datetime(df['datetime'], format=time_format)
     # set time colum as index
-    df.set_index('time', inplace=True)
+    df.set_index('datetime', inplace=True)
     for col in header[2:]:  # Assuming columns from the 3rd onwards are numeric values
         df[col] = df[col].astype(float)  # Convert to float
 
