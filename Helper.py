@@ -35,3 +35,10 @@ def find_file_by_name(filename, startFolder, filetype):
         print('{} not found within directory {}'.format(filename, startFolder))
     return path_to_file
 
+
+def create_directory(directory_path):
+    # Check if the directory already exists
+    if not os.path.exists(directory_path):
+        # If it doesn't exist, create it
+        os.makedirs(directory_path)
+        print(f"Directory '{directory_path}' created.")
