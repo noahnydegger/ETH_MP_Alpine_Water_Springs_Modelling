@@ -23,3 +23,6 @@ def find_spring_peaks(time_series, window_length, polyorder, prominence_threshol
 
     # Return the peak width values
     return widths, peak_data
+
+def newFun():
+    pass  # test
