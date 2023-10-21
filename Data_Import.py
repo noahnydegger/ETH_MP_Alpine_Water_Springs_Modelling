@@ -9,7 +9,7 @@ def import_spring_data(data_directory):
     spring_names = []
     spring_description = []
     spring_data_paths = []
-    spring_data_dfs = []
+    spring_data_dfs = {}
 
     files = os.listdir(data_directory)
     files.sort()
@@ -19,7 +19,7 @@ def import_spring_data(data_directory):
             spring_names.append(filename.replace('_discharge.csv', ''))
             spring_description.append(spring_description_from_filename(filename))
             spring_data_paths.append(filepath)
-            spring_data_dfs.append(import_data_from_csv_file(filepath))
+            spring_data_dfs[spring_names[-1].split('.')[-1]] = import_data_from_csv_file(filepath)
     return spring_names, spring_description, spring_data_paths, spring_data_dfs
 
 
@@ -28,10 +28,6 @@ def import_data_from_csv_file(filepath):
     df['datetime'] = pd.to_datetime(df['datetime'])  # convert column to datetime format
     df.set_index('datetime', inplace=True)  # set date as index
     return df
-
-
-def import_data_from_url():
-    pass
 
 
 def spring_description_from_filename(filename):
@@ -95,7 +91,7 @@ def create_dataframe_from_data_list(data_list, delimiter=';'):
     # Iterate through the data lines and split values accordingly
     for line in data_list[1:]:
         values = line.split(delimiter)
-        data_dict[header[0]].append(values[0])  # add station name
+        data_dict[header[0]].append(values[0])  # add station spring_name
         data_dict['time'].append(values[1])
         for col, value in zip(header[2:], values[2:]):  # Start from the 3rd column
             if value == '-':

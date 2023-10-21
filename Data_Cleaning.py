@@ -23,12 +23,13 @@ def add_timezone_to_dataframe(df, timezone_str):
         df.index = pd.to_datetime(df.index).tz_localize(timezone_str)
 
 
-def resample_and_save_spring_data(df, resolutions, path, prefix):
-    # create the folder if it does not exist yet
-    Helper.create_directory(path)
+def resample_and_save_spring_data(df, resolutions, path, spring_name):
+    # create the folder for the spring if it does not exist yet
+    spring_folder = os.path.join(path, spring_name)
+    Helper.create_directory(spring_folder)
     # save the original valid data
-    filename = f"{prefix}_{'10min'}.csv"
-    file_path = os.path.join(path, filename)
+    filename = f"{spring_name}_{'10min'}.csv"
+    file_path = os.path.join(spring_folder, filename)
     df.to_csv(file_path)
 
     # Convert the index to datetime if it's not already
@@ -43,8 +44,8 @@ def resample_and_save_spring_data(df, resolutions, path, prefix):
         resampled_dfs[resolution] = resampled_df  # Store the resampled dataframe in the dictionary
 
         # Save the resampled dataframe as a CSV file
-        filename = f"{prefix}_{resolution}.csv"
-        file_path = os.path.join(path, filename)
+        filename = f"{spring_name}_{resolution}.csv"
+        file_path = os.path.join(spring_folder, filename)
         resampled_df.to_csv(file_path)
 
     return resampled_dfs

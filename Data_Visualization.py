@@ -186,7 +186,7 @@ def plot_spring_meteo_interactive(spring_df, precip_df, spring_name, meteo_stati
     fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df['discharge(L/min)'], line=dict(width=1, color=spring_c), mode='lines', name='spring discharge'), secondary_y=False)
 
     # Plot the precipitation data on the secondary y-axis
-    #fig.add_trace(go.Scatter(x=precip_df.index, y=precip_df['rre150h0'], marker=dict(color=precip_c, opacity=0.7), name=f'precipitation {resolution} sum', yaxis="y2"), secondary_y=True)
+    #fig.add_trace(go.Scatter(x=precip_df.index, y=precip_df['rre150h0'], marker=dict(color=precip_c, opacity=0.7), spring_name=f'precipitation {resolution} sum', yaxis="y2"), secondary_y=True)
     fig.add_trace(go.Bar(x=precip_df.index, y=precip_df['rre150h0'], marker=dict(color=precip_c, line=dict(color=precip_c, width=1)), name=f'precipitation {resolution} sum', yaxis="y2"), secondary_y=True)
     # Configure the secondary y-axis
     fig.update_layout(
@@ -512,3 +512,26 @@ def cross_correlation_time_series(series1, series2):
     plt.show()
 
     return time_lag, cross_corr
+
+
+def show_interactive_peak_plot(time_series, smoothed_signal, peaks):
+    # Create a figure using Plotly graph objects
+    fig = go.Figure()
+
+    # Add the raw signal in blue
+    fig.add_trace(
+        go.Scatter(x=time_series.index, y=time_series.values, mode='lines', name='Raw Signal', line=dict(color='blue')))
+
+    # Add smoothed signal in red
+    fig.add_trace(go.Scatter(x=time_series.index, y=smoothed_signal, mode='lines', name='Smoothed Signal',
+                             line=dict(color='red')))
+
+    # Add the detected peaks on the smoothed signal
+    fig.add_trace(go.Scatter(x=time_series.index[peaks], y=[smoothed_signal[i] for i in peaks], mode='markers',
+                             name='Detected Peaks', marker=dict(size=8, color='green', symbol='x')))
+
+    # Customize the layout of the plot
+    fig.update_xaxes(title_text='Datetime')
+    fig.update_yaxes(title_text='Signal Value')
+    fig.update_layout(title='Peak Detection in Time Series')
+    fig.show()
