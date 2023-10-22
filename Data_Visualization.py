@@ -8,6 +8,7 @@ import plotly.graph_objects as go  # create interactive plots
 import plotly.express as px
 import csv  # read and write csv files
 import os  # interaction with operating system
+import Helper
 
 
 def plot_interactive_figure(spring_data_dfs, spring_names):
@@ -514,7 +515,7 @@ def cross_correlation_time_series(series1, series2):
     return time_lag, cross_corr
 
 
-def show_interactive_peak_plot(time_series, smoothed_signal, peaks):
+def show_interactive_peak_plot(name, time_series, smoothed_signal, peaks):
     # Create a figure using Plotly graph objects
     fig = go.Figure()
 
@@ -533,5 +534,59 @@ def show_interactive_peak_plot(time_series, smoothed_signal, peaks):
     # Customize the layout of the plot
     fig.update_xaxes(title_text='Datetime')
     fig.update_yaxes(title_text='Signal Value')
-    fig.update_layout(title='Peak Detection in Time Series')
+    fig.update_layout(title=f'Peak Detection for spring {name}')
     fig.show()
+
+
+def save_static_peak_plot(name, time_series, smoothed_signal, peaks, save_path):
+    # Create a Matplotlib figure and axis
+    fig, ax = plt.subplots()
+
+    # Plot the raw signal in blue
+    ax.plot(time_series.index, time_series.values, linewidth=1, color='blue', label='Raw Signal')
+
+    # Plot the smoothed signal in red
+    ax.plot(time_series.index, smoothed_signal, linewidth=1, color='red', label='Smoothed Signal')
+
+    # Scatter plot the detected peaks on the smoothed signal
+    ax.scatter(time_series.index[peaks], [smoothed_signal[i] for i in peaks], color='green', marker='x', s=100, linewidths=3, label='Detected Peaks')
+
+    # Customize the layout of the plot
+    ax.set_xlabel('Datetime')
+    ax.set_ylabel('Discharge [L/min]')
+    ax.set_title(f'Peak Detection for spring {name}')
+    ax.legend()
+
+    # Save the plot as a PDF
+    fig.savefig(os.path.join(save_path, f'{name}.pdf'), bbox_inches='tight')
+    plt.close(fig)
+
+
+def plot_peak_width_boxplots(spring_peaks_dfs, save_path):
+    # Create a list to store the peak width data for each dataset
+    peak_width_data = []
+
+    # Extract the peak width data from each data frame and store it in the list
+    for dataset_name, dataset_df in spring_peaks_dfs.items():
+        peak_width_data.append(dataset_df['Peak Width(h)']/24)
+
+    # Create a Matplotlib figure and axis
+    fig, ax = plt.subplots()
+
+    # Create a box plot for each dataset's peak width data
+    ax.boxplot(peak_width_data)
+
+    # Set the spring names as x-axis labels
+    ax.set_xticklabels(spring_peaks_dfs.keys(), rotation=90)
+
+    # Set labels and title
+    ax.set_xlabel('Springs')
+    ax.set_ylabel('Peak Width (days)')
+    ax.set_title('Peak Width Box Plots')
+
+    # Show the plot
+    plt.show()
+
+    # Save the plot as a PDF
+    Helper.create_directory(save_path)
+    fig.savefig(os.path.join(save_path, 'spring_peaks_boxplots.pdf'), bbox_inches='tight')
