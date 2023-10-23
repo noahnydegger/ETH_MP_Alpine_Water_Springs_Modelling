@@ -474,46 +474,133 @@ def plot_monthly_Paliu_Fravi(spring_df, meteo_dfs, path_to_plot_folder):
     plt.close(fig)
 
 
-def cross_correlation_time_series(series1, series2):
-    # Ensure that both series have a date-time index
-    if not isinstance(series1.index, pd.DatetimeIndex) or not isinstance(series2.index, pd.DatetimeIndex):
-        raise ValueError("Both series must have a date-time index.")
+def plot_cross_correlation_spring_precipitation_single(spring_name, meteo_name, time_lags, cross_corr, range_of_days, save_path):
+    # You want to set the x-limits to -10 days and +10 days from the center
+    center = len(time_lags) // 2  # Find the center index
+    time_lags_in_days = time_lags.total_seconds() / (60 * 60 * 24)  # Convert to days
 
-    # Align the two series by the date-time index
-    common_index = series1.index.intersection(series2.index)
-    series1 = series1.reindex(common_index, fill_value=np.nan)
-    series2 = series2.reindex(common_index, fill_value=np.nan)
+    # Calculate the minimum and maximum x values
+    x_center = time_lags_in_days[center]
+    x_min = x_center - range_of_days
+    x_max = x_center + range_of_days
 
-    # Calculate the cross-correlation using numpy.correlate
-    cross_corr = np.correlate(series1.values, series2.values, mode='full')
+    # Find the index of the overall maximum cross-correlation value
+    max_corr_index = cross_corr.argmax()
 
-    # Compute the time lag corresponding to the maximum cross-correlation
-    max_corr_index = np.argmax(cross_corr)
-    time_lag = common_index[max_corr_index] - common_index[0]
+    # Get the maximum cross-correlation value and its corresponding time delta
+    max_corr_value = cross_corr[max_corr_index]
+    max_time_delta = time_lags_in_days[max_corr_index]
 
-    # Set a range for the plot around the maximum cross-correlation
-    max_corr_range = 10  # Adjust this range as needed
-    start_index = max_corr_index - max_corr_range
-    end_index = max_corr_index + max_corr_range + 1
+    # Find the index of the maximum cross-correlation value within the specified range
+    max_corr_index_in_range = (x_min <= time_lags_in_days) & (time_lags_in_days <= x_max)
+    max_corr_value_in_range = cross_corr[max_corr_index_in_range].max()
+    max_time_delta_in_range = time_lags_in_days[max_corr_index_in_range][cross_corr[max_corr_index_in_range].argmax()]
 
-    # Create an array of time deltas corresponding to the cross-correlation values within the range
-    time_deltas = pd.to_timedelta(np.arange(start_index, end_index), unit='H')
+    # Calculate the position of the maximum cross-correlation value for the dashed line
+    line_x = [max_time_delta_in_range, max_time_delta_in_range]
+    line_y = [0, max_corr_value_in_range]
 
-    # Extract the relevant portion of the cross-correlation
-    cross_corr = cross_corr[start_index:end_index]
+    # Create a figure and axis
+    fig, ax = plt.subplots()
 
-    # Plot the cross-correlation over the time deltas
-    plt.figure(figsize=(10, 6))
-    plt.plot(time_deltas, cross_corr, label=f'Time Lag: {time_lag}')
-    plt.xlabel('Time Delta')
-    plt.ylabel('Cross-Correlation')
-    plt.title('Cross-Correlation of Time Series')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # Plot the cross-correlation
+    ax.plot(time_lags_in_days, cross_corr, linewidth=2, label='Cross-Correlation')
 
-    return time_lag, cross_corr
+    # Add a vertical dashed line at the position of the maximum cross-correlation value
+    ax.plot(line_x, line_y, 'k--')
 
+    # Add the maximum cross-correlation value and time delta as text with background
+    if max_corr_value_in_range == max_corr_value:  # the maximum correlation is within the specified range
+        ax.text(max_time_delta, max_corr_value * 0.5,
+                f'Max Correlation: {max_corr_value:.2f}\nTime Delta: {max_time_delta:.2f} days', ha='center', va='top',
+                bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+    else:
+        ax.text(max_time_delta_in_range, max_corr_value_in_range * 0.5,
+            f'Max Correlation in range: {max_corr_value_in_range:.2f}\n'
+            f'Time Delta in range: {max_time_delta_in_range:.2f} days\n'
+            f'Max Correlation overall:  {max_corr_value:.2f}\n'
+            f'Time Delta overall:  {max_time_delta:.2f} days', ha='center', va='top',
+            bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+
+    # plot settings
+    ax.set_xlabel('Time Lag [d]')
+    ax.set_ylabel('Cross-Correlation Value')
+    ax.set_title(f'{spring_name} spring and {meteo_name} station cross-correlation')
+    ax.grid(True)
+
+    # Set the x-limits to the calculated range
+    ax.set_xlim(x_min, x_max)
+
+    ax.legend()
+
+    # Save the plot as a PDF
+    fig.savefig(os.path.join(save_path, f'{spring_name}_{meteo_name}_cross_correlation.pdf'), bbox_inches='tight')
+
+
+def plot_cross_correlation_spring_precipitation_multiple(spring_name, meteo_names, corr_dfs, range_of_days, save_path):
+    fig, ax = plt.subplots()
+
+    for i, meteo_name in enumerate(meteo_names):
+        time_lags_in_days = corr_dfs[meteo_name]['time_lag(days)']
+        cross_corr = corr_dfs[meteo_name]['Pearson_corr']
+
+        # You want to set the x-limits to -10 days and +10 days from the center
+        center = len(time_lags_in_days) // 2  # Find the center index
+
+        # Calculate the minimum and maximum x values
+        x_center = time_lags_in_days[center]
+        x_min = x_center - range_of_days
+        x_max = x_center + range_of_days
+
+        # Find the index of the overall maximum cross-correlation value
+        max_corr_index = cross_corr.argmax()
+
+        # Get the maximum cross-correlation value and its corresponding time delta
+        max_corr_value = cross_corr[max_corr_index]
+        max_time_delta = time_lags_in_days[max_corr_index]
+
+        # Find the index of the maximum cross-correlation value within the specified range
+        max_corr_index_in_range = (x_min <= time_lags_in_days) & (time_lags_in_days <= x_max)
+        max_corr_value_in_range = cross_corr[max_corr_index_in_range].max()
+        max_time_delta_in_range = time_lags_in_days[max_corr_index_in_range][cross_corr[max_corr_index_in_range].argmax()]
+
+        # Calculate the position of the maximum cross-correlation value for the dashed line
+        line_x = [max_time_delta_in_range, max_time_delta_in_range]
+        line_y = [0, max_corr_value_in_range]
+
+        # Plot the cross-correlation for the current dataset
+        ax.plot(time_lags_in_days, cross_corr, label=f'{meteo_name} station')
+
+        # Add a vertical dashed line at the position of the maximum cross-correlation value
+        ax.plot(line_x, line_y, 'k--')
+
+        # Add the maximum cross-correlation value and time delta as text with background
+        y_pos = max_corr_value_in_range * (i+1) / (len(meteo_name) + 1)
+        if max_corr_value_in_range == max_corr_value:  # the maximum correlation is within the specified range
+            ax.text(max_time_delta, max_corr_value * 0.5,
+                    f'Max Correlation: {max_corr_value:.2f}\nTime Delta: {max_time_delta:.2f} days', ha='center', va='top',
+                    bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+        else:
+            ax.text(max_time_delta_in_range, max_corr_value_in_range * 0.5,
+                f'Max Correlation in range: {max_corr_value_in_range:.2f}\n'
+                f'Time Delta in range: {max_time_delta_in_range:.2f} days\n'
+                f'Max Correlation overall:  {max_corr_value:.2f}\n'
+                f'Time Delta overall:  {max_time_delta:.2f} days', ha='center', va='top',
+                bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+
+    # plot settings
+    ax.set_xlabel('Time Lag [d]')
+    ax.set_ylabel('Pearson Cross-Correlation Value')
+    ax.set_title(f'{spring_name} spring cross-correlation')
+    ax.grid(True)
+
+    # Set the x-limits to the calculated range
+    ax.set_xlim(x_min, x_max)
+
+    ax.legend()
+
+    # Save the plot as a PDF
+    fig.savefig(os.path.join(save_path, f'{spring_name}_cross_correlation.pdf'), bbox_inches='tight')
 
 def show_interactive_peak_plot(name, time_series, smoothed_signal, peaks):
     # Create a figure using Plotly graph objects
