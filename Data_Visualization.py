@@ -539,6 +539,10 @@ def plot_cross_correlation_spring_precipitation_single(spring_name, meteo_name, 
 
 def plot_cross_correlation_spring_precipitation_multiple(spring_name, meteo_names, corr_dfs, range_of_days, save_path):
     fig, ax = plt.subplots()
+    colors = ['b', 'g', 'r']
+    # used to correctly display text on the plot
+    corr_text = {}
+    max_corr_order = {}
 
     for i, meteo_name in enumerate(meteo_names):
         time_lags_in_days = corr_dfs[meteo_name]['time_lag(days)']
@@ -569,24 +573,36 @@ def plot_cross_correlation_spring_precipitation_multiple(spring_name, meteo_name
         line_y = [0, max_corr_value_in_range]
 
         # Plot the cross-correlation for the current dataset
-        ax.plot(time_lags_in_days, cross_corr, label=f'{meteo_name} station')
+        ax.plot(time_lags_in_days, cross_corr, color=colors[i], label=meteo_name)
 
         # Add a vertical dashed line at the position of the maximum cross-correlation value
         ax.plot(line_x, line_y, 'k--')
 
-        # Add the maximum cross-correlation value and time delta as text with background
-        y_pos = max_corr_value_in_range * (i+1) / (len(meteo_name) + 1)
+        # to add the correlation value to the plot later
+        max_corr_order[meteo_name] = (max_time_delta_in_range, max_corr_value_in_range)
+
         if max_corr_value_in_range == max_corr_value:  # the maximum correlation is within the specified range
-            ax.text(max_time_delta, max_corr_value * 0.5,
-                    f'Max Correlation: {max_corr_value:.2f}\nTime Delta: {max_time_delta:.2f} days', ha='center', va='top',
-                    bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+            corr_text[meteo_name] = f'{meteo_name} Meteo station:\nMax Correlation: {max_corr_value:.2f}\n' \
+                                    f'Time Delta: {max_time_delta:.2f} days'
         else:
-            ax.text(max_time_delta_in_range, max_corr_value_in_range * 0.5,
-                f'Max Correlation in range: {max_corr_value_in_range:.2f}\n'
-                f'Time Delta in range: {max_time_delta_in_range:.2f} days\n'
-                f'Max Correlation overall:  {max_corr_value:.2f}\n'
-                f'Time Delta overall:  {max_time_delta:.2f} days', ha='center', va='top',
-                bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+            corr_text[meteo_name] = f'{meteo_name} Meteo station:\n' \
+                                    f'Max Correlation in range: {max_corr_value_in_range:.2f}\n' \
+                                    f'Time Delta in range: {max_time_delta_in_range:.2f} days\n' \
+                                    f'Max Correlation overall:  {max_corr_value:.2f}\n' \
+                                    f'Time Delta overall:  {max_time_delta:.2f} days'
+
+    # Add the maximum cross-correlation value and time delta as text with background
+    # Sort the dictionary based on the first element of the tuples in descending order
+    max_corr_order = dict(sorted(max_corr_order.items(), key=lambda item: item[1][1], reverse=True))
+
+    ha_pos = ['right', 'center', 'left']
+    va_pos = ['top', 'center', 'top']
+    h_offset = [-2.5, 0, 2.5]
+    for i, meteo_name in enumerate(max_corr_order.keys()):
+        x_pos = max_corr_order[meteo_name][0] + h_offset[i]
+        y_pos = max_corr_order[meteo_name][1] * (1 + len(meteo_names) - i*1.5) / (1 + len(meteo_names))
+        ax.text(x_pos, y_pos, corr_text[meteo_name], fontsize=12, ha=ha_pos[i], va=va_pos[i],
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round'))
 
     # plot settings
     ax.set_xlabel('Time Lag [d]')
@@ -597,10 +613,20 @@ def plot_cross_correlation_spring_precipitation_multiple(spring_name, meteo_name
     # Set the x-limits to the calculated range
     ax.set_xlim(x_min, x_max)
 
-    ax.legend()
+    legend = ax.legend(title='Meteo station')
+    legend.get_title().set_fontweight('bold')  # Set font weight
 
     # Save the plot as a PDF
     fig.savefig(os.path.join(save_path, f'{spring_name}_cross_correlation.pdf'), bbox_inches='tight')
+
+    '''
+    (max_time_delta_in_range, y_pos,
+            f'{meteo_name} Meteo station:\n'
+            f'Max Correlation in range: {max_corr_value_in_range:.2f}\n'
+            f'Time Delta in range: {max_time_delta_in_range:.2f} days\n'
+            f'Max Correlation overall:  {max_corr_value:.2f}\n'
+            f'Time Delta overall:  {max_time_delta:.2f} days', fontsize=12, ha=ha_pos[i], va='center',
+            bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))'''
 
 def show_interactive_peak_plot(name, time_series, smoothed_signal, peaks):
     # Create a figure using Plotly graph objects
