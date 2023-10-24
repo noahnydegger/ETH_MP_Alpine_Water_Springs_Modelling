@@ -81,7 +81,7 @@ def plot_meteo_precipitation(df, station, path_to_plot_folder):
     plt.close(fig)
 
 
-def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_data_dfs, resampled_precip_data_dfs, save_path, resolution=('H', 'D'), start=None, end=None):
+def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_data_dfs, resampled_precip_data_dfs, save_path, name_extension, resolution=('H', 'D'), start=None, end=None):
     # Define color codes
     spring_c = 'blue'
     precip_c = 'midnightblue'
@@ -109,16 +109,16 @@ def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_
         # plot the spring data
         axs[nr_meteo].plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c,
                                label='spring discharge')
-        axs[nr_meteo].set_title(f'{spring_name} spring')
+        axs[nr_meteo].set_title(f'{spring_name} spring at resolution {res_spring}')
         # create colored axis
         axs[nr_meteo].set_ylabel('Discharge [L/min]', color=spring_c)
         axs[nr_meteo].tick_params(axis='y', labelcolor=spring_c)
         # Plot the precipitation data with a reversed y-axis
         for i, meteo_name in enumerate(meteo_names):
-            precip_df = resampled_precip_data_dfs[meteo_name][resolution][pd.to_datetime(start):pd.to_datetime(end)]
+            precip_df = resampled_precip_data_dfs[meteo_name][res_precip][start:end]
             axs[i].bar(precip_df.index, precip_df['rre150h0'], alpha=opacity_bar[res_precip], width=bar_widths[res_precip], color=precip_c, label='precipitation hourly sum')
             axs[i].invert_yaxis()  # Reverse the y-axis
-            axs[i].set_title(f'{meteo_name} Meteo station at resolution {resolution}')
+            axs[i].set_title(f'{meteo_name} Meteo station at resolution {res_precip}')
             axs[i].tick_params(axis='y', labelcolor=precip_c)  # create colored axis
 
         axs[nr_meteo//2].set_ylabel(f'Precipitation sum [mm/{res_precip.lower()}]', color=precip_c)  # label only on second subplot
@@ -159,7 +159,7 @@ def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_
     # save the plot as a pdf
     save_path = os.path.join(save_path, spring_name)
     Helper.create_directory(save_path)
-    fig.savefig(os.path.join(save_path, f'{spring_name}_{res_spring}_{res_precip}.pdf'))
+    fig.savefig(os.path.join(save_path, f'{spring_name}_{res_spring}_{res_precip}{name_extension}.pdf'))
     plt.close(fig)
 
 
