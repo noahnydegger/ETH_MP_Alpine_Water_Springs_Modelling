@@ -106,14 +106,14 @@ def find_spring_peaks(spring_name, discharge_df, path_to_plot_folder, window_len
 
 
 def spring_peaks_statistics(resampled_spring_data_dfs, spring_peaks_dfs):
-    column_list = ['data duration', 'peak count', 'min width', '1st quartile', 'median width', 'mean width', '3rd quartile', 'max width']
+    column_list = ['data_duration(days)', 'peak_count(-)', 'min_width(hours)', '1st_quartile(hours)', 'median_width(hours)', 'mean_width(hours)', '3rd_quartile(hours)', 'max_width(hours)']
     index_list = list(spring_peaks_dfs.keys())
     peak_statistics = pd.DataFrame(columns=column_list, index=spring_peaks_dfs.keys())
     stats = []
     for spring_name, peak_df in spring_peaks_dfs.items():
+        spring_df = resampled_spring_data_dfs[spring_name]['D']['discharge(L/min)']
+        stats.append(spring_df.dropna().shape[0])  # data duration = number of days not counting nan
         if not peak_df.empty:
-            spring_df = resampled_spring_data_dfs[spring_name]['10min']
-            stats.append(spring_df.index[-1] - spring_df.index[0])  # data duration
             stats.append(peak_df['Peak Value(L/min)'].count())  # peak count
             stats.append(peak_df['Peak Width(h)'].min())  # min width
             stats.append(peak_df['Peak Width(h)'].quantile(q=0.25))  # 1st quartile
@@ -122,7 +122,7 @@ def spring_peaks_statistics(resampled_spring_data_dfs, spring_peaks_dfs):
             stats.append(peak_df['Peak Width(h)'].quantile(q=0.75))  # d3rd quartile
             stats.append(peak_df['Peak Width(h)'].max())  # min width
         else:
-            stats = [0] * len(column_list)
+            stats.extend([0] * (len(column_list) - 1))
 
         peak_statistics.loc[spring_name] = stats
         stats = []
