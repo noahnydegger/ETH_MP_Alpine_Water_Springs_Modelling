@@ -9,46 +9,6 @@ import Data_Visualization
 import Helper
 
 
-def cross_correlation_time_series_single(spring_name, meteo_name, spring_df, precip_df, path_to_plot_folder, range_of_days=10):
-    # Ensure that both series have a date-time index
-    if not isinstance(spring_df.index, pd.DatetimeIndex) or not isinstance(precip_df.index, pd.DatetimeIndex):
-        raise ValueError("Both series must have a date-time index.")
-
-    # remove rows containing nan: otherwise correlate does not work
-    spring_df.dropna(inplace=True)
-    precip_df.dropna(inplace=True)
-
-    # Align the two series by the date-time index
-    common_index = spring_df.index.intersection(precip_df.index)
-    spring_df = spring_df.loc[common_index]
-    precip_df = precip_df.loc[common_index]
-
-    # Calculate the cross-correlation using scipy.correlate
-    cross_corr = correlate(spring_df.values, precip_df.values, mode='full')
-
-    # Calculate the standard deviations
-    std1 = np.std(spring_df)
-    std2 = np.std(precip_df)
-
-    # Calculate the Pearson correlation coefficient
-    pearson_corr = cross_corr / (len(spring_df) * std1 * std2)
-
-    # Extract the datetime index from the time series
-    index = spring_df.index
-
-    # Calculate the time lags based on the index
-    time_lags_neg = index[0] - index
-    time_lags_neg = time_lags_neg[::-1]
-    time_lags_pos = index[1:] - index[0]
-    time_lags = time_lags_neg.union(time_lags_pos)
-
-    # plots the cross correlation over the time lag
-    save_path = os.path.join(path_to_plot_folder, 'spring_plots', 'spring_precip_correlation')
-    Helper.create_directory(save_path)
-    Data_Visualization.plot_cross_correlation_spring_precipitation(spring_name, meteo_name, time_lags, pearson_corr, range_of_days, save_path)
-
-    return time_lags, cross_corr, pearson_corr
-
 def cross_correlation_time_series_multipel(spring_name, meteo_names, resampled_spring_dfs, resampled_precip_dfs, path_to_plot_folder,resolution='H', range_of_days=10):
     # select spring dataframe
     spring_df = resampled_spring_dfs[spring_name][resolution]['discharge(L/min)']

@@ -23,9 +23,9 @@ def add_timezone_to_dataframe(df, timezone_str):
         df.index = pd.to_datetime(df.index).tz_localize(timezone_str)
 
 
-def resample_and_save_spring_data(df, resolutions, path, spring_name):
+def resample_and_save_spring_data(df, resolutions, save_path, spring_name):
     # create the folder for the spring if it does not exist yet
-    spring_folder = os.path.join(path, spring_name)
+    spring_folder = os.path.join(save_path, spring_name)
     Helper.create_directory(spring_folder)
     # save the original valid data
     filename = f"{spring_name}_{'10min'}.csv"
@@ -51,22 +51,22 @@ def resample_and_save_spring_data(df, resolutions, path, spring_name):
     return resampled_dfs
 
 
-def resample_and_save_precip_data(df_list, resolutions, path, prefix):
+def resample_and_save_precip_data(df_list, resolutions, save_path, prefix):
     resampled_dfs = {}  # Dictionary to store the resampled dataframes
 
     # create the folder if it does not exist yet
-    Helper.create_directory(path)
+    Helper.create_directory(save_path)
     # save the original 10 min data
     if 'rre150z0' in df_list[0].columns:
         filename = f"{prefix}_{'10min'}.csv"
-        file_path = os.path.join(path, filename)
+        file_path = os.path.join(save_path, filename)
         df_10min = df_list[0].loc[:, ['rre150z0']]
         df_10min.to_csv(file_path)
         resampled_dfs['10min'] = df_10min
 
     # save the original hourly data
     filename = f"{prefix}_{'H'}.csv"
-    file_path = os.path.join(path, filename)
+    file_path = os.path.join(save_path, filename)
     df_H = df_list[1].loc[:, ['rre150h0']]
     df_H.to_csv(file_path)
     resampled_dfs['H'] = df_H
@@ -82,7 +82,7 @@ def resample_and_save_precip_data(df_list, resolutions, path, prefix):
 
         # Save the resampled dataframe as a CSV file
         filename = f"{prefix}_{resolution}.csv"
-        file_path = os.path.join(path, filename)
+        file_path = os.path.join(save_path, filename)
         resampled_df.to_csv(file_path)
 
     return resampled_dfs

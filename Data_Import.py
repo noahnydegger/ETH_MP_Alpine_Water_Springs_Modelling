@@ -53,7 +53,7 @@ def read_multi_dataset_txt_file(file_path, delimiter, dataset_separator=''):
     Read a .txt file containing multiple datasets into a list of Pandas DataFrames.
 
     Args:
-        file_path (str): The path to the .txt file.
+        file_path (str): The save_path to the .txt file.
         delimiter (str): The delimiter used to separate columns within each dataset.
         dataset_separator (str): The string that separates datasets within the file.
 
