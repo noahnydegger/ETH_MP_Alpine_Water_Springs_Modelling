@@ -85,7 +85,7 @@ def find_spring_peaks(spring_name, discharge_df, path_to_plot_folder, window_len
     peaks, _ = find_peaks(smoothed_signal, prominence=prominence_threshold, distance=distance)
 
     # Calculate peak width using the smoothed signal
-    widths, width_heights, left_ips, right_ips = peak_widths(smoothed_signal, peaks, rel_height=0.5)
+    widths, width_heights, left_ips, right_ips = peak_widths(smoothed_signal, peaks, rel_height=0.2)
 
     # Create a DataFrame for peak information
     peak_data = pd.DataFrame({'Datetime': discharge_df.index[peaks], 'Peak Value(L/min)': smoothed_signal[peaks], 'Peak Width(h)': widths/10})

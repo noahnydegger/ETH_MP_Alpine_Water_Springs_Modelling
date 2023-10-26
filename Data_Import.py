@@ -4,6 +4,8 @@ from dateutil.parser import parse
 from io import StringIO
 import os  # interaction with operating system
 
+import Data_Cleaning
+
 
 def import_spring_data(data_directory):
     spring_names = []
@@ -23,13 +25,41 @@ def import_spring_data(data_directory):
     return spring_names, spring_description, spring_data_paths, spring_data_dfs
 
 
+
 def import_data_from_csv_file(filepath):
     df = pd.read_csv(filepath)  # read csv
-    df['datetime'] = pd.to_datetime(df['datetime'])  # convert column to datetime format
+    df['datetime'] = pd.to_datetime(df['datetime'],format='mixed')
+    # convert column to datetime format
     df.set_index('datetime', inplace=True)  # set date as index
     return df
+def import_snow_data(filename,startdate,enddate):
+    path = "/Users/ramunbar/Documents/Master/3_Semester/GITHUB/ETH_MP_Alpine_Water_Springs_Modelling/Data/meteo_data/Snow_data/"
+    df = pd.read_csv( path + filename)
+    df['measure_date'] = pd.to_datetime(df['measure_date'], format='mixed')
+    # Remove rows with missing values (missing data)
+    df = df.dropna()
+    # Use the extracted timezone for filtering
+    start_date = pd.to_datetime(startdate + " " + "06:00:00+00:00" )
+    end_date = pd.to_datetime(enddate + " "+ "06:00:00+00:00")
+    # Calculate the change in snow depth and add it as a new column
+    df['delta HS'] = df['HS'].diff()
+    # Filter the DataFrame using the extracted timezone
+    df = df[
+        (df['measure_date'] >= start_date) &
+        (df['measure_date'] <= end_date)
+        ]
 
+    return df
+def import_mc_data(filename):
+    # Provide the file path to your Excel file
+    excel_file_path = '/Users/ramunbar/Documents/Master/3_Semester/GITHUB/ETH_MP_Alpine_Water_Springs_Modelling/Data/spring_data/measurement_campaign/' + filename  # Replace with the actual file path
 
+    # Read the Excel file with specific sheet names into dataframes
+    mc_pf = pd.read_excel(excel_file_path, sheet_name='Paliu Fravi')
+
+    mc_u = pd.read_excel(excel_file_path, sheet_name='Ulrika')
+
+    return mc_u,mc_pf
 def spring_description_from_filename(filename):
     filename_split = filename.split('.')
     spring_name_split = filename_split[2].split('_')

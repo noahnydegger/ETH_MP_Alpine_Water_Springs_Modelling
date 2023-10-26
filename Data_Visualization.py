@@ -22,30 +22,224 @@ def plot_interactive_figure(spring_data_dfs, spring_names):
     return fig
 
 
-def plot_single_spring(spring_name, spring_df, spring_description, path_to_plot_folder):
-    # plot figure
-    fig, ax_flow = plt.subplots(figsize=(15, 9))  # create an empty figure
-    ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], color='blue', label='discharge')
-    ax_temp = ax_flow.twinx()
-    ax_temp.plot(spring_df.index, spring_df['temperature(C)'], color='red', label='temperature')
-    ax_flow.set_title(spring_description)
-    # create colored axis
-    ax_flow.set_ylabel('Discharge [L/min]', color='b')
-    ax_temp.set_ylabel('Temperature [C]', color='r')
-    ax_flow.tick_params(axis='y', labelcolor='b')
-    ax_temp.tick_params(axis='y', labelcolor='r')
-    ax_flow.set(xlabel='Datetime')
-    ax_flow.tick_params(axis='x', rotation=45)
-    plt.grid(True)
-    # Add legends
-    ax_flow.legend(loc='upper left')
-    ax_temp.legend(loc='upper right')
-    fig.tight_layout()
 
-    # save the plot as a pdf
-    fig.savefig(os.path.join(path_to_plot_folder, '{}.pdf'.format(spring_name)))
+
+
+def plot_single_spring(spring_name, spring_df, spring_description, path_to_plot_folder):
+    try:
+        # Create a figure
+        fig, ax_flow = plt.subplots(figsize=(18, 12))
+
+        # Plot data
+        ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], color='blue', label='discharge',
+                     linewidth=1.5)  # Increase linewidth
+        ax_temp = ax_flow.twinx()
+        ax_temp.plot(spring_df.index, spring_df['temperature(C)'], color='red', label='temperature',
+                     linewidth=1.5)  # Increase linewidth
+
+        # Customize the figure
+        #ax_flow.set_title(spring_description)
+        ax_flow.set_xlabel("", fontsize=18)  # Change the font size (16 in this example)
+        ax_temp.set_ylabel('Air temperature [C]', color='r', fontsize=35)
+        ax_flow.set_ylabel('Discharge [L/min]', color='b',fontsize=35)
+
+
+        ax_flow.tick_params(axis='y', labelcolor='b',labelsize = "25")
+        ax_temp.tick_params(axis='y', labelcolor='r',labelsize = "25")
+        ax_flow.set(xlabel='Datetime')
+        ax_flow.tick_params(axis='x', rotation=45, labelsize = "23")
+        plt.grid(True)
+
+        # Add legends
+        #ax_flow.legend(loc='upper left')
+        #ax_temp.legend(loc='upper right')
+        #fig.tight_layout()
+
+        # Save the plot as a PDF
+        save_path = os.path.join(path_to_plot_folder, f"{spring_name}.pdf")
+        fig.savefig(save_path)
+
+        # Close the figure to free up resources
+        plt.close(fig)
+
+        return save_path  # Return the path where the figure is saved
+
+    except Exception as e:
+        # Handle any exceptions, e.g., print an error message
+        print(f"An error occurred: {e}")
+        return None  # Return None in case of an error
+
+
+import matplotlib.pyplot as plt
+
+import matplotlib.pyplot as plt
+
+import matplotlib.pyplot as plt
+
+
+def plot_snow(schnee_flims, schnee_thusis, figure_name):
+    path_to_plot_folder = "/Users/ramunbar/Documents/Master/3_Semester/GITHUB/ETH_MP_Alpine_Water_Springs_Modelling/Plots/Meteo_Plots/Snow_Plots"
+
+    # Create a figure and axis
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # Adjust the thickness of the bars
+    bar_width = 0.5
+
+    # Plot snow depth for schnee_flims as bars on the left y-axis
+    ax1.bar(schnee_flims['measure_date'], schnee_flims['HS'], color='blue', label='Schnee Flims [cm]', width=bar_width,
+            zorder=2)
+
+    # Plot snow depth for schnee_thusis as bars on the left y-axis (in a different color)
+    ax1.bar(schnee_thusis['measure_date'], schnee_thusis['HS'], color='green', label='Schnee Thusis [cm]',
+            width=bar_width, zorder=3)
+
+    ax1.set_xlabel('Year')
+    ax1.set_ylabel('Snow Depth [cm]', color='blue')
+
+    # Add horizontal grid lines
+    ax1.yaxis.grid(True)
+
+    # Create a second y-axis on the right for the change in snow depth
+    # ax2 = ax1.twinx()
+    # ax2.plot(schnee_flims['measure_date'], schnee_flims['delta HS'], color='red', label='Change in Snow Depth')
+    # ax2.set_ylabel('Change in Snow Depth', color='red')
+    ax1.tick_params(axis='x', rotation=45)
+
+    # Show the legend
+    ax1.legend(loc='upper left')
+
+    # Save the figure with the specified name
+    fig.savefig(os.path.join(path_to_plot_folder, '{}.pdf'.format(figure_name)))
     plt.close(fig)
-    return
+
+def plot_snow_one(schnee_flims, figure_name):
+        path_to_plot_folder = "/Users/ramunbar/Documents/Master/3_Semester/GITHUB/ETH_MP_Alpine_Water_Springs_Modelling/Plots/Meteo_Plots/Snow_Plots"
+
+        # Create a figure and axis
+        fig, ax1 = plt.subplots(figsize=(20, 6))
+
+        # Adjust the thickness of the bars
+        bar_width = 1
+
+        # Plot snow depth for schnee_flims as bars on the left y-axis
+        ax1.bar(schnee_flims['measure_date'], schnee_flims['HS'], color='blue', label='Schnee Flims [cm]',
+                width=bar_width,
+                zorder=2)
+
+
+
+        ax1.set_xlabel('Year')
+        ax1.set_ylabel('Snow Depth [cm]', color='blue')
+
+        # Add horizontal grid lines
+        ax1.yaxis.grid(True)
+
+        # Create a second y-axis on the right for the change in snow depth
+        # ax2 = ax1.twinx()
+        # ax2.plot(schnee_flims['measure_date'], schnee_flims['delta HS'], color='red', label='Change in Snow Depth')
+        # ax2.set_ylabel('Change in Snow Depth', color='red')
+        #ax1.tick_params(axis='x', rotation=45)
+
+        # Show the legend
+        #ax1.legend(loc='upper left')
+
+        # Save the figure with the specified name
+        fig.savefig(os.path.join(path_to_plot_folder, '{}.pdf'.format(figure_name)))
+        plt.close(fig)
+
+
+import os
+import matplotlib.pyplot as plt
+
+def plot_spring_data_and_mc(spring_name, spring_df, spring_description, path_to_plot_folder, mc_data):
+    try:
+        # Create a figure
+        fig, ax_flow = plt.subplots(figsize=(18, 12))
+
+        # Plot data from spring_df
+        ax_flow.plot(spring_df.index, spring_df["discharge(L/min)"], color='blue', label='discharge',
+                     linewidth=1.5)  # Increase linewidth
+        # Plot data from mc_data
+        ax_flow.plot(mc_data["datetime"], mc_data["discharge [L/min]"], 'ro', markersize=10, label='MC Discharge')
+
+        # Customize the figure
+        ax_flow.set_xlabel("Datetime", fontsize=18)
+        ax_flow.set_ylabel('Discharge [L/min]', color='b', fontsize=35)
+
+        ax_flow.tick_params(axis='y', labelcolor='b', labelsize=25)
+        ax_flow.set_xticklabels(spring_df['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S'), rotation=45, fontsize=23)
+        plt.grid(True)
+
+        # Add legend
+        ax_flow.legend(loc='upper left')
+
+        # Save the plot as a PDF
+        save_path = os.path.join(path_to_plot_folder, f"{spring_name}.pdf")
+        fig.savefig(save_path)
+    except Exception as e:
+        print(f"Error plotting {spring_name}: {str(e)}")
+
+def plot_spring_precipitation_mc_interactive(mc_data, spring_name, meteo_name, resampled_spring_data_dfs, resampled_precip_data_dfs, resolution=('H', 'D'), start=None, end=None):
+
+    # Define color codes
+    spring_c = 'lightgreen'
+    precip_c = 'blue'
+
+    bar_widths = {'H': 0.2, 'D': 1, 'M': 1}  # width for the precipitation bars
+    opacity_bar = {'H': 1, 'D': 1, 'M': 0.5}  # transparency for the precipitation bars
+
+    # get temporal resolution for spring discharge and precipitation data
+    res_spring = resolution[0]
+    res_precip = resolution[1]
+
+    spring_df = resampled_spring_data_dfs[spring_name][res_spring]
+
+    if resampled_precip_data_dfs[meteo_name].get(res_precip) is None:
+        res_precip = 'D'
+    precip_df = resampled_precip_data_dfs[meteo_name][res_precip]
+
+    # Convert start and end to datetime objects using pd.to_datetime
+    start = pd.to_datetime(start, utc=True) if start is not None else precip_df.index.min()
+    end = pd.to_datetime(end, utc=True) if end is not None else precip_df.index.max()
+
+    # Select a subset of data within the specified date range
+    spring_df = spring_df[start:end]
+    precip_df = precip_df[start:end]
+
+    # Create an interactive figure using Plotly
+    # Create figure with secondary y-axis
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Plot the spring data on the primary y-axis
+    fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df['discharge(L/min)'], line=dict(width=1, color=spring_c), mode='lines', name='spring discharge'), secondary_y=False)
+    # Plot data from mc_data
+    fig.add_trace(go.Scatter(x=mc_data["datetime"], y=mc_data['discharge [L/min]'], mode ='markers', marker=dict(size=8, color="red"),name='mc discharge'), secondary_y=False)
+
+    # Plot the precipitation data on the secondary y-axis
+    fig.add_trace(go.Bar(x=precip_df.index, y=precip_df['rre150h0'], opacity=opacity_bar[res_precip], marker=dict(color=precip_c, line=dict(color=precip_c, width=bar_widths[res_precip])), name=f'precipitation sum', yaxis="y2"), secondary_y=True)
+    # Configure the secondary y-axis
+    fig.update_layout(
+        yaxis2=dict(
+            title=f'Precipitation sum [mm/{res_precip.lower()}]',
+            side='right',
+            autorange="reversed"  # Reverse the y-axis
+        ),
+    )
+
+    # Configure plot layout and labels
+    fig.update_layout(
+        title=f'{spring_name} spring ({res_spring}) and {meteo_name} Meteo station ({res_precip}) ',
+        xaxis_title='Datetime',
+        yaxis_title='Discharge [L/min]',
+        xaxis=dict(tickangle=45),
+        #showgrid=True
+    )
+
+    # Show the interactive plot
+    fig.show()
+
+
 
 
 def plot_meteo_precipitation(df, station, path_to_plot_folder):

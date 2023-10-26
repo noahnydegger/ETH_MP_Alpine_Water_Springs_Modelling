@@ -21,7 +21,11 @@ def add_timezone_to_dataframe(df, timezone_str):
         df.index = df.index.tz_localize(timezone_str)
     else:
         df.index = pd.to_datetime(df.index).tz_localize(timezone_str)
-
+def add_timezone_mc(mc_u,mc_pf):
+    # Convert the "datetime" column to datetime with "Europe/Zurich" time zone
+    mc_pf['datetime'] = pd.to_datetime(mc_pf['datetime']).dt.tz_localize('Europe/Zurich')
+    mc_u['datetime'] = pd.to_datetime(mc_u['datetime']).dt.tz_localize('Europe/Zurich')
+    return mc_u, mc_pf
 
 def resample_and_save_spring_data(df, resolutions, save_path, spring_name):
     # create the folder for the spring if it does not exist yet
