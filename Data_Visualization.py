@@ -274,6 +274,57 @@ def plot_meteo_precipitation(df, station, path_to_plot_folder):
     fig.savefig(os.path.join(path_to_plot_folder, 'Meteo_Plots', '{}.pdf'.format(station)))
     plt.close(fig)
 
+def plot_spring_mc_static(mc_data,spring_name, resampled_spring_data_dfs,
+                                         save_path, name_extension, resolution=('H', 'D'), start=None, end=None):
+        # Define color codes
+        spring_c = 'blue'
+
+
+        bar_widths = {'H': 0.2, 'D': 1, 'M': 20}  # width for the precipitation bars
+        opacity_bar = {'H': 1, 'D': 0.8, 'M': 0.7}  # transparency for the precipitation bars
+
+        # get temporal resolution for spring discharge and precipitation data
+        res_spring = resolution[0]
+
+
+
+        start = pd.to_datetime(start, utc=True)
+        end = pd.to_datetime(end, utc=True)
+
+        # Filter the DataFrame for the specified date range
+        mc_data = mc_data[(mc_data['datetime'] >= start) & (mc_data['datetime'] <= end)]
+        # select subset of data
+        spring_df = resampled_spring_data_dfs[spring_name][res_spring][start:end]
+
+
+        # Create a figure
+        fig, ax_flow = plt.subplots(figsize=(15, 9))
+
+        # Plot the spring data
+        ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c, label='spring discharge')
+
+        # Plot the mc_data as red points
+        ax_flow.scatter(mc_data['datetime'], mc_data['discharge [L/min]'], color='red', label='mc discharge', s=10)
+
+        # Configure plot labels and titles
+
+        ax_flow.set_ylabel('Discharge [L/min]', color=spring_c)
+
+        ax_flow.tick_params(axis='y', labelcolor=spring_c)
+
+        ax_flow.set(xlabel='Datetime')
+        ax_flow.tick_params(axis='x', rotation=45)
+
+        plt.grid(True)
+        fig.tight_layout()
+
+        # save the plot as a pdf
+        save_path = os.path.join(save_path, spring_name)
+        Helper.create_directory(save_path)
+        fig.savefig(os.path.join(save_path, f'{spring_name}_{res_spring}_{name_extension}.pdf'))
+        #plt.close(fig)
+        print(mc_data)
+        print(spring_df)
 
 def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_data_dfs, resampled_precip_data_dfs, save_path, name_extension, resolution=('H', 'D'), start=None, end=None):
     # Define color codes
@@ -294,9 +345,10 @@ def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_
     start = pd.to_datetime(start, utc=True) if start is not None else precip_df.index.min()
     end = pd.to_datetime(end, utc=True) if end is not None else precip_df.index.max()
 
+
     # select subset of data
     spring_df = resampled_spring_data_dfs[spring_name][res_spring][start:end]
-
+    mc_data = mc_data
     nr_meteo = len(meteo_names)
     if nr_meteo > 1:  # more than one meteo station
         fig, axs = plt.subplots(nrows=nr_meteo + 1, ncols=1, figsize=(15, 9), sharex=True)  # create an empty figure
