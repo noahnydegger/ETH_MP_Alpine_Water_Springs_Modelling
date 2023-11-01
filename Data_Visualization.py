@@ -10,6 +10,7 @@ import plotly.express as px
 import csv  # read and write csv files
 import os  # interaction with operating system
 import Helper
+from matplotlib.dates import DateFormatter
 
 
 def plot_interactive_figure(spring_data_dfs, spring_names):
@@ -48,7 +49,8 @@ def plot_single_spring(spring_name, spring_df, spring_description, path_to_plot_
         ax_temp.tick_params(axis='y', labelcolor='r',labelsize = "25")
         ax_flow.set(xlabel='Datetime')
         ax_flow.tick_params(axis='x', rotation=45, labelsize = "23")
-        plt.grid(True)
+        # Add horizontal grid lines
+        ax1.yaxis.grid(True)
 
         # Add legends
         #ax_flow.legend(loc='upper left')
@@ -169,7 +171,8 @@ def plot_spring_data_and_mc(spring_name, spring_df, spring_description, path_to_
 
         ax_flow.tick_params(axis='y', labelcolor='b', labelsize=25)
         ax_flow.set_xticklabels(spring_df['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S'), rotation=45, fontsize=23)
-        plt.grid(True)
+        # Add horizontal grid lines
+        ax1.yaxis.grid(True)
 
         # Add legend
         ax_flow.legend(loc='upper left')
@@ -193,6 +196,7 @@ def plot_spring_precipitation_mc_interactive(mc_data, spring_name, meteo_name, r
     res_spring = resolution[0]
     res_precip = resolution[1]
 
+
     spring_df = resampled_spring_data_dfs[spring_name][res_spring]
 
     if resampled_precip_data_dfs[meteo_name].get(res_precip) is None:
@@ -206,7 +210,8 @@ def plot_spring_precipitation_mc_interactive(mc_data, spring_name, meteo_name, r
     # Select a subset of data within the specified date range
     spring_df = spring_df[start:end]
     precip_df = precip_df[start:end]
-
+    # Filter the DataFrame for the specified date range
+    mc_data = mc_data[(mc_data['datetime'] >= start) & (mc_data['datetime'] <= end)]
     # Create an interactive figure using Plotly
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -301,21 +306,35 @@ def plot_spring_mc_static(mc_data,spring_name, resampled_spring_data_dfs,
         fig, ax_flow = plt.subplots(figsize=(15, 9))
 
         # Plot the spring data
-        ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c, label='spring discharge')
+        ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c,
+                     label='spring discharge',zorder=1)
 
-        # Plot the mc_data as red points
-        ax_flow.scatter(mc_data['datetime'], mc_data['discharge [L/min]'], color='red', label='mc discharge', s=10)
+        # Plot the mc_data as red points with adjusted size
+        ax_flow.scatter(mc_data['datetime'], mc_data['discharge [L/min]'], color='red', label='mc discharge',
+                        s=40,zorder=2)  # Increase 's' to make dots bigger
 
         # Configure plot labels and titles
+        ax_flow.set_ylabel('Discharge [L/min]', color=spring_c, fontsize=30)
+        ax_flow.tick_params(axis='y', labelcolor=spring_c,labelsize="25")
 
-        ax_flow.set_ylabel('Discharge [L/min]', color=spring_c)
 
-        ax_flow.tick_params(axis='y', labelcolor=spring_c)
+        ax_flow.tick_params(axis='x', rotation=45, labelsize="23")
+        ax_flow.set_xlabel("", fontsize=18)
 
-        ax_flow.set(xlabel='Datetime')
-        ax_flow.tick_params(axis='x', rotation=45)
 
-        plt.grid(True)
+        # Set y-axis range (displace the y-axis)
+        y_range = None # (0, 10) or None
+        if y_range is not None:
+            ax_flow.set_ylim(y_range)
+        # Format the x-axis to display date in the format "Year-Month-Day-Hour"
+        date_format = DateFormatter("%Y-%m-%d-%H")
+        ax_flow.xaxis.set_major_formatter(date_format)
+        #ax_flow.set(xlabel='Datetime')
+
+        # Add a legend
+        ax_flow.legend(loc='upper right')
+        # Add horizontal grid lines
+        ax_flow.yaxis.grid(True)
         fig.tight_layout()
 
         # save the plot as a pdf
@@ -323,8 +342,7 @@ def plot_spring_mc_static(mc_data,spring_name, resampled_spring_data_dfs,
         Helper.create_directory(save_path)
         fig.savefig(os.path.join(save_path, f'{spring_name}_{res_spring}_{name_extension}.pdf'))
         #plt.close(fig)
-        print(mc_data)
-        print(spring_df)
+
 
 def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_data_dfs, resampled_precip_data_dfs, save_path, name_extension, resolution=('H', 'D'), start=None, end=None):
     # Define color codes
