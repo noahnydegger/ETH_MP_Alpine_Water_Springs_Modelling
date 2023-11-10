@@ -13,7 +13,7 @@ def csv_data_to_dataframe(filepath, columns_dict={}, decimalFormat='.', encoding
 def excel_data_to_dataframe(filepath, sheetname):
     excelfile = pd.ExcelFile(filepath)
     df = pd.read_excel(excelfile, sheetname)
-    #df.(columns=columns_dict, inplace=True)  # rename columns
+    #wb_df.(columns=columns_dict, inplace=True)  # rename columns
     return df
 
 

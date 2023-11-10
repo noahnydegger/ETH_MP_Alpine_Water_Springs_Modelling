@@ -25,13 +25,22 @@ def import_spring_data(data_directory):
     return spring_names, spring_description, spring_data_paths, spring_data_dfs
 
 
-
 def import_data_from_csv_file(filepath):
     df = pd.read_csv(filepath)  # read csv
-    df['datetime'] = pd.to_datetime(df['datetime'],format='mixed')
+    df['datetime'] = pd.to_datetime(df['datetime'])
     # convert column to datetime format
     df.set_index('datetime', inplace=True)  # set date as index
     return df
+
+
+def import_resampled_spring_data(filepath):
+    df = pd.read_csv(filepath)  # read csv
+    df['datetime'] = pd.to_datetime(df['datetime'])
+    # convert column to datetime format
+    df.set_index('datetime', inplace=True)  # set date as index
+    return df
+
+
 def import_snow_data(filename,startdate,enddate):
     path = "/Users/ramunbar/Documents/Master/3_Semester/GITHUB/ETH_MP_Alpine_Water_Springs_Modelling/Data/meteo_data/Snow_data/"
     df = pd.read_csv( path + filename)

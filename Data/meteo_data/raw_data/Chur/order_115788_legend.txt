@@ -1,0 +1,45 @@
+Bundesamt für Meteorologie und Klimatologie, MeteoSchweiz
+Operation Center 1
+Postfach 257
+8058 Zürich-Flughafen
+
+stn yyyyMMddHHmm
+
+stn Stationskürzel
+y   Jahr
+M   Monat
+d   Tag
+H   Stunde
+m   Minute
+
+Zeitangaben in UTC: 00:40 UTC = 02:40 Sommerzeit
+                              = 01:40 Winterzeit
+
+Zeitbezug bei Stundenwerten, sofern in der Parameterbeschreibung nicht anders vermerkt: HH  = (HH-1):01 - HH:00
+Beispiel: 13 = beinhaltet Messperiode von 12:01 bis 13:00 
+
+Fehlende Messwerte sind gekenntzeichnet mit '-'
+
+Qualitätsinformationen: Die Legende zu den Qualitätsinformationen ist zu finden unter: https://gate.meteoswiss.ch/idaweb/text/datenqualitaet_legende_de.pdf
+
+ 
+
+
+
+
+Stationen
+---------
+stn       Name                                 Parameter        Datenquelle                                        Länge/Breite             Koordinaten [km] Höhe ü. M. [m]
+CHU       Chur                                 tre200s0         MeteoSchweiz                                       9°32'/46°52'             759488/193181    556
+CHU       Chur                                 tresurs0         MeteoSchweiz                                       9°32'/46°52'             759488/193181    556
+CHU       Chur                                 rre150z0         MeteoSchweiz                                       9°32'/46°52'             759488/193181    556
+CHU       Chur                                 rre150h0         MeteoSchweiz                                       9°32'/46°52'             759488/193181    556
+
+Parameter
+---------
+          Einheit                              Beschreibung
+tre200s0  °C                                   Lufttemperatur 2 m über Boden; Momentanwert
+tresurs0  °C                                   Lufttemperatur Bodenoberfläche; Momentanwert
+rre150z0  mm                                   Niederschlag; Zehnminutensumme
+rre150h0  mm                                   Niederschlag; Stundensumme
+

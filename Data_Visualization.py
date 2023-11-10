@@ -485,7 +485,99 @@ def plot_spring_precipitation_interactive(spring_name, meteo_name, resampled_spr
     fig.show()
 
 
-def plot_cross_correlation_spring_precipitation_multiple(spring_name, meteo_names, corr_dfs, range_of_days, save_path):
+def plot_spring_temperature_static(spring_name, meteo_names, resampled_spring_data_dfs, resampled_temp_data_dfs, save_path, name_extension, resolution=('H', 'D'), start=None, end=None):
+    # Define color codes
+    spring_c = 'blue'
+    temp_c = ['r', 'g']
+    window_size = {'H': 24, 'D': 10, 'W': 4, 'M': 1}
+    lw = 2  # linewidth
+
+    # get temporal resolution for spring discharge and precipitation data
+    res_spring = resolution[0]
+    res_temp = resolution[1]
+
+    # Convert start and end to datetime objects using pd.to_datetime
+    temp_df = resampled_temp_data_dfs[meteo_names[0]][res_temp]
+    start = pd.to_datetime(start, utc=True) if start is not None else temp_df.index.min()
+    end = pd.to_datetime(end, utc=True) if end is not None else temp_df.index.max()
+
+    # select subset of data
+    spring_df = resampled_spring_data_dfs[spring_name][res_spring]['temperature(C)'][start:end].rolling(window=7).mean()
+
+    fig, ax = plt.subplots(figsize=(15, 9))  # create an empty figure
+    # plot the spring data
+    ax.plot(spring_df.index, spring_df.values, linewidth=lw, color=spring_c,
+                           label=f'{spring_name} Water')
+
+    # Plot the air temperature
+    for i, meteo_name in enumerate(meteo_names):
+        temp_df = resampled_temp_data_dfs[meteo_name][res_temp]['temperature(C)'][start:end].rolling(window=7).mean()
+        ax.plot(temp_df.index, temp_df.values, linewidth=lw, color=temp_c[i], label=f'{meteo_name} Air')
+
+    # Configure plot labels and titles
+    ax.set_title(f'{spring_name} spring')
+    ax.set_ylabel('Temperature [C]')
+    ax.set_xlabel('Datetime')
+    # Set the x-axis range based on the minimum and maximum date values
+    ax.set_xlim(temp_df.index.min(), temp_df.index.max())
+    ax.tick_params(axis='x', rotation=45)
+    plt.grid(True)
+    fig.tight_layout()
+    # Add legends
+    ax.legend(loc='upper center')
+
+    # save the plot as a pdf
+    save_path = os.path.join(save_path, spring_name)
+    Helper.create_directory(save_path)
+    fig.savefig(os.path.join(save_path, f'{spring_name}_{res_spring}_{res_temp}{name_extension}.pdf'))
+    plt.close(fig)
+
+
+def plot_spring_temperature_interactive(spring_name, meteo_names, resampled_spring_data_dfs, resampled_temp_data_dfs, resolution=('H', 'D'), start=None, end=None):
+    # Define color codes
+    spring_c = 'blue'
+    temp_c = ['red', 'green']
+    window_size = {'H': 24, 'D': 10, 'W': 4, 'M': 1}
+
+    # get temporal resolution for spring discharge and precipitation data
+    res_spring = resolution[0]
+    res_temp = resolution[1]
+
+    # Convert start and end to datetime objects using pd.to_datetime
+    temp_df = resampled_temp_data_dfs[meteo_names[0]][res_temp]
+    start = pd.to_datetime(start, utc=True) if start is not None else temp_df.index.min()
+    end = pd.to_datetime(end, utc=True) if end is not None else temp_df.index.max()
+
+    # select subset of data
+    spring_df = resampled_spring_data_dfs[spring_name][res_spring]['temperature(C)'][start:end]
+
+    # Create an interactive figure using Plotly
+    fig = go.Figure()
+
+    # Plot the spring data on the primary y-axis
+    fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df.values, line=dict(width=1, color=spring_c), mode='lines', name=spring_name))
+    # Plot the air temperature
+    for i, meteo_name in enumerate(meteo_names):
+        temp_df = resampled_temp_data_dfs[meteo_name][res_temp]['temperature(C)'][start:end]
+        temp_df_smoothed = temp_df.rolling(window=window_size[res_temp]).mean()
+        # Plot the air temperature data on the secondary y-axis
+        #fig.add_trace(go.Scatter(x=temp_df.index, y=temp_df.values, line=dict(width=1, color=temp_c[i]), mode='lines', name=meteo_name))
+        fig.add_trace(go.Scatter(x=temp_df_smoothed.index, y=temp_df_smoothed.values, line=dict(width=2, color=temp_c[i], dash='dash'), mode='lines',
+                                 name=f'{meteo_name} smoothed'))
+
+    # Configure plot layout and labels
+    fig.update_layout(
+        title=f'{spring_name} spring',
+        xaxis_title='Datetime',
+        yaxis_title='Temperature [C]',
+        #showgrid=True
+    )
+
+    # Show the interactive plot
+    fig.show()
+
+
+def plot_cross_correlation_spring_meteo_multiple(spring_name, meteo_names, corr_dfs, range_of_days, save_path):
     fig, ax = plt.subplots()
     colors = ['b', 'g', 'r']
     # used to correctly display text on the plot
@@ -524,7 +616,7 @@ def plot_cross_correlation_spring_precipitation_multiple(spring_name, meteo_name
         ax.plot(time_lags_in_days, cross_corr, color=colors[i], label=meteo_name)
 
         # Add a vertical dashed line at the position of the maximum cross-correlation value
-        ax.plot(line_x, line_y, 'k--')
+        ax.plot(line_x, line_y, 'k--', linewidth=1)
 
         # to add the correlation value to the plot later
         max_corr_order[meteo_name] = (max_time_delta_in_range, max_corr_value_in_range)
@@ -602,7 +694,8 @@ def save_static_peak_plot(name, time_series, smoothed_signal, peaks, save_path):
     ax.plot(time_series.index, smoothed_signal, linewidth=1, color='red', label='Smoothed Signal')
 
     # Scatter plot the detected peaks on the smoothed signal
-    ax.scatter(time_series.index[peaks], [smoothed_signal[i] for i in peaks], color='green', marker='x', s=100, linewidths=3, label='Detected Peaks')
+    ax.scatter(time_series.index[peaks], [smoothed_signal[i] for i in peaks], color='green', marker='x', s=50,
+               linewidths=2, label='Detected Peaks', zorder=2)
 
     # Customize the layout of the plot
     ax.set_xlabel('Datetime')
