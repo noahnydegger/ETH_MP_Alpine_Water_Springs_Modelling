@@ -58,23 +58,25 @@ def resample_and_save_spring_data(df, resolutions, save_path, spring_name, new_d
     return resampled_dfs
 
 
-def resample_and_save_precip_data(df_list, resolutions, save_path, prefix, new_data_available):
+def resample_and_save_precip_data(df_list, resolutions, save_path, meteo_name, new_data_available):
+    # create the folder for the meteo station if it does not exist yet
+    meteo_folder = os.path.join(save_path, meteo_name)
+    Helper.create_directory(meteo_folder)
+
     resampled_dfs = {}  # Dictionary to store the resampled dataframes
 
-    # create the folder if it does not exist yet
-    Helper.create_directory(save_path)
     # save the original 10 min data
     if 'rre150z0' in df_list[0].columns:
-        filename = f"{prefix}_{'precip_10min'}.csv"
-        file_path = os.path.join(save_path, filename)
+        filename = f"{meteo_name}_{'precip_10min'}.csv"
+        file_path = os.path.join(meteo_folder, filename)
         df_10min = df_list[0].loc[:, ['rre150z0']]
         if new_data_available:
             df_10min.to_csv(file_path)
         resampled_dfs['10min'] = df_10min
 
     # save the original hourly data
-    filename = f"{prefix}_{'precip_H'}.csv"
-    file_path = os.path.join(save_path, filename)
+    filename = f"{meteo_name}_{'precip_H'}.csv"
+    file_path = os.path.join(meteo_folder, filename)
     df_H = df_list[1].loc[:, ['rre150h0']]
     if new_data_available:
         df_H.to_csv(file_path)
@@ -90,19 +92,20 @@ def resample_and_save_precip_data(df_list, resolutions, save_path, prefix, new_d
         resampled_dfs[resolution] = resampled_df  # Store the resampled dataframe in the dictionary
 
         # Save the resampled dataframe as a CSV file
-        filename = f"{prefix}_precip_{resolution}.csv"
-        file_path = os.path.join(save_path, filename)
+        filename = f"{meteo_name}_precip_{resolution}.csv"
+        file_path = os.path.join(meteo_folder, filename)
         if new_data_available:
             resampled_df.to_csv(file_path)
 
     return resampled_dfs
 
 
-def resample_and_save_temp_data(df_list, resolutions, save_path, prefix, new_data_available):
+def resample_and_save_temp_data(df_list, resolutions, save_path, meteo_name, new_data_available):
+    # create the folder for the meteo station if it does not exist yet
+    meteo_folder = os.path.join(save_path, meteo_name)
+    Helper.create_directory(meteo_folder)
     resampled_dfs = {}  # Dictionary to store the resampled dataframes
 
-    # create the folder if it does not exist yet
-    Helper.create_directory(save_path)
     # save the original 10 min data: is always the first dataframe in the list
     df = df_list[0]
     # get the column name containing the temperature data
@@ -111,8 +114,8 @@ def resample_and_save_temp_data(df_list, resolutions, save_path, prefix, new_dat
     if temp_column is None:
         return 'No temperature data available'
 
-    filename = f"{prefix}_{'temp_10min'}.csv"
-    file_path = os.path.join(save_path, filename)
+    filename = f"{meteo_name}_{'temp_10min'}.csv"
+    file_path = os.path.join(meteo_folder, filename)
     df_temp = df[[temp_column]].rename(columns={temp_column: 'temperature(C)'})
     #df_temp = wb_df[temp_column]
     #df_temp.rename(columns={temp_column: 'temperature(C)'}, inplace=True)
@@ -131,8 +134,8 @@ def resample_and_save_temp_data(df_list, resolutions, save_path, prefix, new_dat
         resampled_dfs[resolution] = resampled_df  # Store the resampled dataframe in the dictionary
 
         # Save the resampled dataframe as a CSV file
-        filename = f"{prefix}_temp_{resolution}.csv"
-        file_path = os.path.join(save_path, filename)
+        filename = f"{meteo_name}_temp_{resolution}.csv"
+        file_path = os.path.join(meteo_folder, filename)
         if new_data_available:
             resampled_df.to_csv(file_path)
 
