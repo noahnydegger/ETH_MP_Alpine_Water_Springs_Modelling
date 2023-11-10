@@ -114,7 +114,7 @@ def resample_and_save_temp_data(df_list, resolutions, save_path, prefix, new_dat
     filename = f"{prefix}_{'temp_10min'}.csv"
     file_path = os.path.join(save_path, filename)
     df_temp = df[[temp_column]].rename(columns={temp_column: 'temperature(C)'})
-    #df_temp = df[temp_column]
+    #df_temp = wb_df[temp_column]
     #df_temp.rename(columns={temp_column: 'temperature(C)'}, inplace=True)
 
     # Convert the index to datetime if it's not already
