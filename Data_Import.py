@@ -33,12 +33,29 @@ def import_data_from_csv_file(filepath):
     return df
 
 
-def import_resampled_spring_data(filepath):
-    df = pd.read_csv(filepath)  # read csv
-    df['datetime'] = pd.to_datetime(df['datetime'])
-    # convert column to datetime format
-    df.set_index('datetime', inplace=True)  # set date as index
-    return df
+def import_resampled_data(save_path):
+    resampled_data_dfs = {}
+    skip_save_path = True
+    for sub_folder, dirs, files in os.walk(save_path):
+        if skip_save_path:  # start with the first subfolder
+            skip_save_path = False
+            continue
+        folder_name = os.path.basename(sub_folder)
+
+        # Initialize a dictionary for the current folder
+        resampled_dfs = {}
+
+        # Iterate over files in the spring folder
+        for file in files:
+            # Store resampled df in the dictionary
+            resolution = file.split('_')[-1].split('.')[0]
+            filepath = os.path.join(sub_folder, file)
+            resampled_dfs[resolution] = import_data_from_csv_file(filepath)
+
+        # Store the dfs from the subfolder files in the main dictionary
+        resampled_data_dfs[folder_name] = resampled_dfs
+
+    return resampled_data_dfs
 
 
 def import_snow_data(filename,startdate,enddate):
@@ -59,6 +76,8 @@ def import_snow_data(filename,startdate,enddate):
         ]
 
     return df
+
+
 def import_mc_data(filename):
     # Provide the file path to your Excel file
     excel_file_path = '/Users/ramunbar/Documents/Master/3_Semester/GITHUB/ETH_MP_Alpine_Water_Springs_Modelling/Data/spring_data/measurement_campaign/' + filename  # Replace with the actual file path
@@ -150,3 +169,28 @@ def create_dataframe_from_data_list(data_list, delimiter=';'):
         df[col] = df[col].astype(float)  # Convert to float
 
     return df
+
+
+def import_resampled_meteo_data(save_path):
+    resampled_spring_data_dfs = {}
+    skip_save_path = True
+    for spring_folder, dirs, files in os.walk(save_path):
+        if skip_save_path:  # start with the first subfolder
+            skip_save_path = False
+            continue
+        spring_name = os.path.basename(spring_folder)
+
+        # Initialize a dictionary for the current spring folder
+        resampled_dfs = {}
+
+        # Iterate over files in the spring folder
+        for file in files:
+            # Store resampled df in the dictionary
+            resolution = file.split('_')[-1].split('.')[0]
+            filepath = os.path.join(spring_folder, file)
+            resampled_dfs[resolution] = import_data_from_csv_file(filepath)
+
+        # Store the subfolder dictionary in the main dictionary
+        resampled_meteo_data_dfs[spring_name] = resampled_dfs
+
+    return resampled_meteo_data_dfs
