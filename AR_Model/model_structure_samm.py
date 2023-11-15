@@ -28,7 +28,7 @@ lineWidth = 1.5 # linewidth in plots
 plt.rcParams['font.size'] = fontSize
 plt.rcParams['lines.linewidth'] = lineWidth
 
-def model_cycle(ulrika_d,plot, time, d_avg,d_1,d_2,d_3, frq_1,frq_2,frq_3):
+def model_cycle(ulrika_d,plot, time, d_avg,d_1,d_2,d_3, frq_1,frq_2,frq_3,path_to_save_ar_figures):
     # Make the model
     # read from the fft Plot the values
     #d_avg = 373.63
@@ -62,8 +62,9 @@ def model_cycle(ulrika_d,plot, time, d_avg,d_1,d_2,d_3, frq_1,frq_2,frq_3):
         plt.plot(time, ulrika_d['discharge(L/min)'], label="measured")
         plt.plot(time, d_mod, label="modelled")
         plt.xlabel('Time [d]')
-        plt.ylabel('discharge [L/min]')
+        plt.ylabel('Discharge [L/min]')
         plt.legend()
+        plt.savefig(os.path.join(path_to_save_ar_figures, 'cycle_model.pdf'))
         plt.show()
 
     return d_mod
@@ -158,4 +159,52 @@ def model_ar_cycle(discharge,d_mod,time,d_avg,d_1,d_2,d_3,plot, path_to_save_ar_
         plt.savefig(os.path.join(path_to_save_ar_figures, "res_minus_corr.pdf"))
 
     return d_mod_AR,res,res_1,h,h_1
+
+def model_ar(discharge,time,d_avg, path_to_save_ar_figures):
+    # Autocorrelation Term
+    res = discharge
+    res_1 = sh.delay(time, res, (time[1] - time[0]))
+
+    def regression(res_1, param):
+        kappa, alpha = param
+        res = kappa + alpha * res_1
+        return res
+
+    kappa = 0
+    alpha = 1
+    v = res
+    d = res[1:]
+    kappa, alpha = sh.curve_fit(regression, res[1:], res_1[1:], param=[kappa, alpha])
+
+    autoregr = regression(res_1[1:], param=[kappa, alpha])
+
+    # Noise Term (Std. of Residuals)
+    h = np.array(res[1:]) - autoregr
+    h_1 = sh.delay(time, h, time[1] - time[0])
+    sigh = np.std(h, ddof=1)
+    time_ext = np.arange(0, 2000, 1)
+
+    # AR(1) Term
+    AR = np.zeros(len(time))
+    AR[0] = np.random.normal(0, sigh, 1)
+    for i in range(1, len(time)):
+        AR[i] = AR[i - 1] * alpha + np.random.normal(0, sigh, 1)
+
+
+    # Modelled Data
+    d_mod_AR = d_avg + AR
+    # Plot autoregression
+    plt.plot(res_1[1:], res[1:], label="residuals", marker=".", linestyle="")
+    plt.plot(res_1[1:], autoregr, label="autoregression")
+    # Plot Modelled Data
+    plt.figure('new model', figsize=(15, 10))
+    plt.grid()
+    plt.plot(time, discharge, label="measured")
+    plt.plot(time, d_mod_AR, label="modelled")
+    plt.xlabel('Time [d]', fontsize=16)
+    plt.ylabel('Discharge [L/min]', fontsize=20)
+    plt.legend()
+
+    plt.savefig(os.path.join(path_to_save_ar_figures, 'ar_only_model.pdf'))
+    return d_mod_AR
 

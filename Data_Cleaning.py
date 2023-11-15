@@ -22,7 +22,19 @@ def get_ulrika(show_plot, resampled_spring_data_dfs, resolution, start, end):
 
     res_spring = resolution[0]
     res_precip = resolution[1]
+   # if resampled_precip_data_dfs[meteo_name].get(res_precip) is None:
+    #    res_precip = 'D'
+   # precip_df = resampled_precip_data_dfs[meteo_name][res_precip]
+
+    # Convert start and end to datetime objects using pd.to_datetime
+    #start = pd.to_datetime(start, utc=True) if start is not None else precip_df.index.min()
+   # end = pd.to_datetime(end, utc=True) if end is not None else precip_df.index.max()
+
+    # Select a subset of data within the specified date range
+   # spring_df = spring_df[start:end]
+   # precip_df = precip_df[start:end]
     ulrika = resampled_spring_data_dfs[spring_name][res_spring][start:end]
+   # ulrika["rain"] = precip_df
     # Filter and create ulrika_d dataframe
     ulrika_d = ulrika.loc[(ulrika['discharge(L/min)'] > 0) & (ulrika['discharge(L/min)'] <= 1500)].copy()
     #ulrika_d = ulrika_d['discharge(L/min)']
