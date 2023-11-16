@@ -2,7 +2,7 @@ import pandas as pd  # data processing
 import numpy as np  # data processing
 import os  # interaction with operating system
 import Helper
-import matplotlib.pyplot as plt # create plots
+
 
 def keep_only_valid_data(df):
     return df[df.valid]
@@ -14,41 +14,6 @@ def interpolate_below_threshold(df, column_name='discharge(L/min)', threshold=5,
     df_copy.loc[mask, column_name] = np.NaN  # Replace values below the threshold with NaN
     df_copy[column_name] = df_copy[column_name].interpolate(method=method)
     return df_copy
-def get_ulrika(show_plot, resampled_spring_data_dfs, resolution, start, end):
-    # get data of Ulrika
-    spring_name = 'Ulrika'
-    meteo_name = 'Freienbach'
-
-
-    res_spring = resolution[0]
-    res_precip = resolution[1]
-   # if resampled_precip_data_dfs[meteo_name].get(res_precip) is None:
-    #    res_precip = 'D'
-   # precip_df = resampled_precip_data_dfs[meteo_name][res_precip]
-
-    # Convert start and end to datetime objects using pd.to_datetime
-    #start = pd.to_datetime(start, utc=True) if start is not None else precip_df.index.min()
-   # end = pd.to_datetime(end, utc=True) if end is not None else precip_df.index.max()
-
-    # Select a subset of data within the specified date range
-   # spring_df = spring_df[start:end]
-   # precip_df = precip_df[start:end]
-    ulrika = resampled_spring_data_dfs[spring_name][res_spring][start:end]
-   # ulrika["rain"] = precip_df
-    # Filter and create ulrika_d dataframe
-    ulrika_d = ulrika.loc[(ulrika['discharge(L/min)'] > 0) & (ulrika['discharge(L/min)'] <= 1500)].copy()
-    #ulrika_d = ulrika_d['discharge(L/min)']
-    # Create a figure
-    if show_plot:
-        fig, ax_flow = plt.subplots(figsize=(15, 9))
-
-        # Plot the spring data
-        ax_flow.plot(ulrika_d.index, ulrika_d['discharge(L/min)'], linewidth=1, color="blue",
-                 label='spring discharge', zorder=1)
-        plt.ylabel('Discharge [l/min]')
-        plt.title('Filtered Dataframe (ulrika_d)')
-
-    return ulrika_d
 
 
 def add_timezone_to_dataframe(df, timezone_str):

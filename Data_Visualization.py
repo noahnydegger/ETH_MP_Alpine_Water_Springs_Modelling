@@ -10,7 +10,6 @@ import plotly.express as px
 import csv  # read and write csv files
 import os  # interaction with operating system
 import Helper
-from matplotlib.dates import DateFormatter
 
 
 def plot_interactive_figure(spring_data_dfs, spring_names):
@@ -21,9 +20,6 @@ def plot_interactive_figure(spring_data_dfs, spring_names):
             go.Scatter(x=spring_data_dfs[i].index, y=spring_data_dfs[i]['discharge(L/min)'], name=spring_names[i]))
     fig.update_layout(xaxis_title="Time", yaxis_title="discharge [L/min]")
     return fig
-
-
-
 
 
 def plot_single_spring(spring_name, spring_df, spring_description, path_to_plot_folder):
@@ -49,8 +45,7 @@ def plot_single_spring(spring_name, spring_df, spring_description, path_to_plot_
         ax_temp.tick_params(axis='y', labelcolor='r',labelsize = "25")
         ax_flow.set(xlabel='Datetime')
         ax_flow.tick_params(axis='x', rotation=45, labelsize = "23")
-        # Add horizontal grid lines
-        ax1.yaxis.grid(True)
+        plt.grid(True)
 
         # Add legends
         #ax_flow.legend(loc='upper left')
@@ -171,8 +166,7 @@ def plot_spring_data_and_mc(spring_name, spring_df, spring_description, path_to_
 
         ax_flow.tick_params(axis='y', labelcolor='b', labelsize=25)
         ax_flow.set_xticklabels(spring_df['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S'), rotation=45, fontsize=23)
-        # Add horizontal grid lines
-        ax1.yaxis.grid(True)
+        plt.grid(True)
 
         # Add legend
         ax_flow.legend(loc='upper left')
@@ -196,7 +190,6 @@ def plot_spring_precipitation_mc_interactive(mc_data, spring_name, meteo_name, r
     res_spring = resolution[0]
     res_precip = resolution[1]
 
-
     spring_df = resampled_spring_data_dfs[spring_name][res_spring]
 
     if resampled_precip_data_dfs[meteo_name].get(res_precip) is None:
@@ -210,8 +203,7 @@ def plot_spring_precipitation_mc_interactive(mc_data, spring_name, meteo_name, r
     # Select a subset of data within the specified date range
     spring_df = spring_df[start:end]
     precip_df = precip_df[start:end]
-    # Filter the DataFrame for the specified date range
-    mc_data = mc_data[(mc_data['datetime'] >= start) & (mc_data['datetime'] <= end)]
+
     # Create an interactive figure using Plotly
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -306,35 +298,21 @@ def plot_spring_mc_static(mc_data,spring_name, resampled_spring_data_dfs,
         fig, ax_flow = plt.subplots(figsize=(15, 9))
 
         # Plot the spring data
-        ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c,
-                     label='spring discharge',zorder=1)
+        ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c, label='spring discharge')
 
-        # Plot the mc_data as red points with adjusted size
-        ax_flow.scatter(mc_data['datetime'], mc_data['discharge [L/min]'], color='red', label='mc discharge',
-                        s=40,zorder=2)  # Increase 's' to make dots bigger
+        # Plot the mc_data as red points
+        ax_flow.scatter(mc_data['datetime'], mc_data['discharge [L/min]'], color='red', label='mc discharge', s=10)
 
         # Configure plot labels and titles
-        ax_flow.set_ylabel('Discharge [L/min]', color=spring_c, fontsize=30)
-        ax_flow.tick_params(axis='y', labelcolor=spring_c,labelsize="25")
 
+        ax_flow.set_ylabel('Discharge [L/min]', color=spring_c)
 
-        ax_flow.tick_params(axis='x', rotation=45, labelsize="23")
-        ax_flow.set_xlabel("", fontsize=18)
+        ax_flow.tick_params(axis='y', labelcolor=spring_c)
 
+        ax_flow.set(xlabel='Datetime')
+        ax_flow.tick_params(axis='x', rotation=45)
 
-        # Set y-axis range (displace the y-axis)
-        y_range = None # (0, 10) or None
-        if y_range is not None:
-            ax_flow.set_ylim(y_range)
-        # Format the x-axis to display date in the format "Year-Month-Day-Hour"
-        date_format = DateFormatter("%Y-%m-%d-%H")
-        ax_flow.xaxis.set_major_formatter(date_format)
-        #ax_flow.set(xlabel='Datetime')
-
-        # Add a legend
-        ax_flow.legend(loc='upper right')
-        # Add horizontal grid lines
-        ax_flow.yaxis.grid(True)
+        plt.grid(True)
         fig.tight_layout()
 
         # save the plot as a pdf
@@ -342,7 +320,8 @@ def plot_spring_mc_static(mc_data,spring_name, resampled_spring_data_dfs,
         Helper.create_directory(save_path)
         fig.savefig(os.path.join(save_path, f'{spring_name}_{res_spring}_{name_extension}.pdf'))
         #plt.close(fig)
-
+        print(mc_data)
+        print(spring_df)
 
 def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_data_dfs, resampled_precip_data_dfs, save_path, name_extension, resolution=('H', 'D'), start=None, end=None):
     # Define color codes
@@ -685,7 +664,7 @@ def show_interactive_peak_plot(name, time_series, smoothed_signal, peaks):
 
 def save_static_peak_plot(name, time_series, smoothed_signal, peaks, save_path):
     # Create a Matplotlib figure and axis
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12, 5))
 
     # Plot the raw signal in blue
     ax.plot(time_series.index, time_series.values, linewidth=1, color='blue', label='Raw Signal')
@@ -698,42 +677,73 @@ def save_static_peak_plot(name, time_series, smoothed_signal, peaks, save_path):
                linewidths=2, label='Detected Peaks', zorder=2)
 
     # Customize the layout of the plot
-    ax.set_xlabel('Datetime')
     ax.tick_params(axis='x', rotation=45)
     ax.set_ylabel('Discharge [L/min]')
     ax.set_title(f'Peak Detection for spring {name}')
     ax.legend()
+
+    #ax.set_xlim([pd.to_datetime('2021-10-01'), pd.to_datetime('2022-07-20')])
+    #ax.set_ylim([-5, 300])
 
     # Save the plot as a PDF
     fig.savefig(os.path.join(save_path, f'{name}.pdf'), bbox_inches='tight')
     plt.close(fig)
 
 
-def plot_peak_width_boxplots(spring_peaks_dfs, save_path):
+def plot_peak_width_boxplots(spring_peaks_dfs, save_path, show_labels=True):
     # Create a list to store the peak width data for each dataset
     peak_width_data = []
+    selected_springs = ['Paliu_Fravi', 'Ulrika']
 
     # Extract the peak width data from each data frame and store it in the list
-    for dataset_name, dataset_df in spring_peaks_dfs.items():
-        peak_width_data.append(dataset_df['Peak Width(h)']/24)
+    for dataset_name, dataset_df in {key: spring_peaks_dfs[key] for key in selected_springs}.items():
+        peak_width_data.append(dataset_df['Peak Width(h)'])
 
     # Create a Matplotlib figure and axis
     fig, ax = plt.subplots()
 
     # Create a box plot for each dataset's peak width data
-    ax.boxplot(peak_width_data)
+    #ax.boxplot(peak_width_data)
+
+    # Create a box plot for each dataset's peak width data
+    box = ax.boxplot(peak_width_data, showmeans=True)
 
     # Set the spring names as x-axis labels
-    ax.set_xticklabels(spring_peaks_dfs.keys(), rotation=90)
+    ax.set_xticklabels({key: spring_peaks_dfs[key] for key in selected_springs}.keys(), rotation=0)
+
+    # Add numbers and labels on the plot
+    if show_labels:
+        fs = 12
+        for i, vals in enumerate(peak_width_data):
+            mean_val = np.mean(vals)
+            ax.text(i + 1.1, mean_val, f'{mean_val:.1f}', ha='left', va='center', color='#519e3e', fontsize=fs)
+
+            median_val = np.median(vals)
+            ax.text(i + 1.1, median_val, f'{median_val:.1f}', ha='left', va='center', color='darkorange', fontsize=fs)
+
+            # Add labels for lower and upper quartiles
+            lower_q = np.percentile(vals, 25)
+            upper_q = np.percentile(vals, 75)
+
+            ax.text(i + 0.9, lower_q, f'{lower_q:.1f}', ha='right', va='center', color='black', fontsize=fs)
+            ax.text(i + 0.9, upper_q, f'{upper_q:.1f}', ha='right', va='center', color='black', fontsize=fs)
+
+        # Add labels for the box, mean, and median
+        for i, box_line in enumerate(box['medians']):
+            #ax.text(i + 1, box_line.get_ydata()[0], 'Median', ha='center', va='bottom', color='green')
+
+            mean_x = i + 1.2
+            mean_y = np.mean(box['means'][i].get_ydata())
+            #ax.text(mean_x, mean_y, 'Mean', ha='left', va='center', color='blue')
 
     # Set labels and title
-    ax.set_xlabel('Springs')
-    ax.set_ylabel('Peak Width (days)')
-    ax.set_title('Peak Width Box Plots')
+    ax.set_ylabel('Peak Width (hours)')
+    #ax.set_xlabel('Springs')
+    #ax.set_title('Peak Width Box Plots')
 
     # Show the plot
     plt.show()
 
     # Save the plot as a PDF
     Helper.create_directory(save_path)
-    fig.savefig(os.path.join(save_path, 'spring_peaks_boxplots.pdf'), bbox_inches='tight')
+    fig.savefig(os.path.join(save_path, 'spring_peaks_boxplots_selected_springs.pdf'), bbox_inches='tight')
