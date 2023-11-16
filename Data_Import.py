@@ -88,6 +88,8 @@ def import_mc_data(filename):
     mc_u = pd.read_excel(excel_file_path, sheet_name='Ulrika')
 
     return mc_u,mc_pf
+
+
 def spring_description_from_filename(filename):
     filename_split = filename.split('.')
     spring_name_split = filename_split[2].split('_')
@@ -169,28 +171,3 @@ def create_dataframe_from_data_list(data_list, delimiter=';'):
         df[col] = df[col].astype(float)  # Convert to float
 
     return df
-
-
-def import_resampled_meteo_data(save_path):
-    resampled_spring_data_dfs = {}
-    skip_save_path = True
-    for spring_folder, dirs, files in os.walk(save_path):
-        if skip_save_path:  # start with the first subfolder
-            skip_save_path = False
-            continue
-        spring_name = os.path.basename(spring_folder)
-
-        # Initialize a dictionary for the current spring folder
-        resampled_dfs = {}
-
-        # Iterate over files in the spring folder
-        for file in files:
-            # Store resampled df in the dictionary
-            resolution = file.split('_')[-1].split('.')[0]
-            filepath = os.path.join(spring_folder, file)
-            resampled_dfs[resolution] = import_data_from_csv_file(filepath)
-
-        # Store the subfolder dictionary in the main dictionary
-        resampled_meteo_data_dfs[spring_name] = resampled_dfs
-
-    return resampled_meteo_data_dfs
