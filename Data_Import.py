@@ -27,7 +27,7 @@ def import_spring_data(data_directory):
 
 def import_data_from_csv_file(filepath):
     df = pd.read_csv(filepath)  # read csv
-    df['datetime'] = pd.to_datetime(df['datetime'],format='mixed')
+    df['datetime'] = pd.to_datetime(df['datetime'])
     # convert column to datetime format
     df.set_index('datetime', inplace=True)  # set date as index
     return df

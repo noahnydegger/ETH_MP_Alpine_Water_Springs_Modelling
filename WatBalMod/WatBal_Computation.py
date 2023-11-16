@@ -75,7 +75,7 @@ def compute_water_balance(wb_df, catchment_parameters, model_parameters):
         # Compute percolation to groundwater reservoir
         if wb_df['storage_soil(mm)'][i] > max_saturation:
             wb_df.loc[i, 'percolation_gw(mm)'] = wb_df['storage_soil(mm)'][i] - max_saturation
-            wb_df.loc[i, 'storage_soil(mm)'] = wb_df['storage_soil(mm)'][i] - wb_df['percolation_gw(mm)'][i]
+            wb_df.loc[i, 'storage_soil(mm)'] = max_saturation
 
 
         # only for one tank model
@@ -88,21 +88,31 @@ def compute_water_balance(wb_df, catchment_parameters, model_parameters):
         wb_df.loc[i, 'storage_gw(mm)'] = max(wb_df['storage_gw(mm)'][y] + wb_df['percolation_gw(mm)'][i] - wb_df['discharge_sim(mm)'][i], 0)
         #Qgw[Sg < 0] = 0
         y = i  # current day is new yesterday
-        '''
-        
-    
-    # Initialize gof_values dictionary
-    gof_values = {
-        'NSE': 1 - np.sum((Qobs - Qsim) ** 2) / np.sum((Qobs - np.nanmean(Qobs)) ** 2),
-        'KGE': 1 - np.sqrt(
-        (np.corrcoef(Qobs, Qsim)[0, 1] - 1) ** 2 + ((np.std(Qsim) / np.std(Qobs) - 1) ** 2) + (
-                    (np.mean(Qsim) / np.mean(Qobs) - 1) ** 2)),
-        'Bias': 1 / len(Qobs) * np.sum(Qsim - Qobs),
-        'PBias': 100 * (np.mean(Qobs) - np.mean(Qsim)) / np.mean(Qobs),
-        'MAE': 1 / len(Qobs) * np.sum(np.abs(Qobs - Qsim)),
-        'RMSE': np.sqrt(1 / len(Qobs) * np.sum((Qsim - Qobs) ** 2)),
-        'MAD': np.max(Qsim - Qobs),
-        'MPD': np.max(Qsim) - np.max(Qobs)
-    '''
 
-    return wb_df
+    gof_values = compute_gof_values(wb_df, catchment_parameters)
+
+    return wb_df, gof_values
+
+
+def compute_gof_values(wb_df, catchment_parameters):
+    # Store dataframe columns in separate variables
+    discharge_meas = wb_df['discharge_meas(mm)'] * catchment_parameters['area'] / (60 * 24)
+    discharge_sim = wb_df['discharge_sim(mm)'] * catchment_parameters['area'] / (60 * 24)
+
+    # Calculate Goodness-of-Fit values
+    gof_values = {
+        'NSE': 1 - np.sum((discharge_meas - discharge_sim) ** 2) / np.sum(
+            (discharge_meas - np.nanmean(discharge_meas)) ** 2),
+        'KGE': 1 - np.sqrt(
+            (np.corrcoef(discharge_meas, discharge_sim)[0, 1] - 1) ** 2 +
+            ((np.std(discharge_sim) / np.std(discharge_meas) - 1) ** 2) +
+            ((np.mean(discharge_sim) / np.mean(discharge_meas) - 1) ** 2)),
+        'Bias': 1 / len(discharge_meas) * np.sum(discharge_sim - discharge_meas),
+        'PBias': 100 * (np.mean(discharge_meas) - np.mean(discharge_sim)) / np.mean(discharge_meas),
+        'MAE': 1 / len(discharge_meas) * np.sum(np.abs(discharge_meas - discharge_sim)),
+        'RMSE': np.sqrt(1 / len(discharge_meas) * np.sum((discharge_sim - discharge_meas) ** 2)),
+        'MAD': np.max(discharge_sim - discharge_meas),
+        'MPD': np.max(discharge_sim) - np.max(discharge_meas)
+    }
+
+    return gof_values
