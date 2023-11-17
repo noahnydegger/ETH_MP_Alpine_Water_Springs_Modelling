@@ -2,3 +2,9 @@
 **.idea
 **.env
 
+# python
+**__pycache__
+
+# jupyter
+
+

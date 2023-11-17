@@ -40,10 +40,10 @@ def compute_daily_PET_by_Hamon():
         '''
 
 
-def compute_water_balance(wb_df, catchment_parameters, model_parameters):
+def compute_water_balance(wb_df, fixed_parameters, variable_parameters):
     # params, Lat, Tsm, PETa, PETb, PETc, Qobs, R, S, T_b, Jday, SC, M, Ss, PET, ET, Qsurf, PER_gw, Qgw, Sg, Qsim
     # Parameters for calibration
-    max_saturation, rg, melt_rate, fr, melt_temp, lapse_rate = tuple(model_parameters.values())
+    area, max_saturation, rg, melt_rate, fr, melt_temp, lapse_rate = tuple(variable_parameters.values())
 
     # set initial values
     wb_df.loc[wb_df.index[0], ['storage_soil(mm)']] = [10]
@@ -89,15 +89,15 @@ def compute_water_balance(wb_df, catchment_parameters, model_parameters):
         #Qgw[Sg < 0] = 0
         y = i  # current day is new yesterday
 
-    gof_values = compute_gof_values(wb_df, catchment_parameters)
+    gof_values = compute_gof_values(wb_df, variable_parameters)
 
     return wb_df, gof_values
 
 
-def compute_gof_values(wb_df, catchment_parameters):
+def compute_gof_values(wb_df, variable_parameters):
     # Store dataframe columns in separate variables
-    discharge_meas = wb_df['discharge_meas(mm)'] * catchment_parameters['area'] / (60 * 24)
-    discharge_sim = wb_df['discharge_sim(mm)'] * catchment_parameters['area'] / (60 * 24)
+    discharge_meas = wb_df['discharge_meas(mm)'] * variable_parameters['area'] / (60 * 24)
+    discharge_sim = wb_df['discharge_sim(mm)'] * variable_parameters['area'] / (60 * 24)
 
     # Calculate Goodness-of-Fit values
     gof_values = {

@@ -10,16 +10,16 @@ from datetime import datetime
 import Helper
 
 
-def first_impression_plot(spring_name, meteo_name, wb_df, catchment_parameters):
+def first_impression_plot(spring_name, meteo_name, wb_df, variable_parameters):
     # Create a figure using Plotly graph objects
     fig = go.Figure()
 
     # Add the raw signal in blue
     fig.add_trace(
-        go.Scatter(x=wb_df.index, y=wb_df['discharge_meas(mm)'] * catchment_parameters['area'] / (60 * 24), mode='lines', name='discharge measured', line=dict(color='blue')))
+        go.Scatter(x=wb_df.index, y=wb_df['discharge_meas(mm)'] * variable_parameters['area'] / (60 * 24), mode='lines', name='discharge measured', line=dict(color='blue')))
 
     # Add smoothed signal in red
-    fig.add_trace(go.Scatter(x=wb_df.index, y=wb_df['discharge_sim(mm)'] * catchment_parameters['area'] / (60 * 24), mode='lines', name='discharge simulated',
+    fig.add_trace(go.Scatter(x=wb_df.index, y=wb_df['discharge_sim(mm)'] * variable_parameters['area'] / (60 * 24), mode='lines', name='discharge simulated',
                              line=dict(color='red')))
 
     # Customize the layout of the plot
@@ -29,15 +29,15 @@ def first_impression_plot(spring_name, meteo_name, wb_df, catchment_parameters):
     fig.show()
 
 
-def static_discharge_plot(spring_name, wb_df, catchment_parameters):
+def static_discharge_plot(spring_name, wb_df, variable_parameters):
     # Create a Matplotlib figure and axis
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Plot the raw signal in blue
-    ax.plot(wb_df.index, wb_df['discharge_meas(mm)'] * catchment_parameters['area'] / (60 * 24), linewidth=1, color='blue', label='discharge measured')
+    ax.plot(wb_df.index, wb_df['discharge_meas(mm)'] * variable_parameters['area'] / (60 * 24), linewidth=1, color='blue', label='discharge measured')
 
     # Plot the smoothed signal in orange
-    ax.plot(wb_df.index, wb_df['discharge_sim(mm)'] * catchment_parameters['area'] / (60 * 24), linewidth=1, color='orange', label='discharge simulated')
+    ax.plot(wb_df.index, wb_df['discharge_sim(mm)'] * variable_parameters['area'] / (60 * 24), linewidth=1, color='orange', label='discharge simulated')
 
     # Customize the layout of the plot
     ax.tick_params(axis='x', rotation=45)
