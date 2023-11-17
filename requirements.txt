@@ -1,0 +1,9 @@
+statsmodels
+numpy
+pandas
+matplotlib
+scipy
+
+
+# noteboooks
+jupyterlab
