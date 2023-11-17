@@ -1,9 +1,12 @@
 statsmodels
 numpy
-pandas
-matplotlib
 scipy
+scikit-learn
 
+pandas
+
+plotly
+matplotlib
 
 # noteboooks
 jupyterlab
