@@ -5,8 +5,12 @@ scikit-learn
 
 pandas
 
+path
+
+python-dateutil
+
 plotly
 matplotlib
 
-# noteboooks
 jupyterlab
+ipython
