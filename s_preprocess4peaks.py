@@ -4,6 +4,10 @@ import scipy.signal as ss
 import pandas as pd
 import matplotlib.pyplot as plt
 
+def qcol() -> str:
+    """Return column name for discharge."""
+    return "discharge_(L/min)"
+
 
 dpath = Path(".") / "Data" / "spring_data" / "wabesense_discharge_2023-09-01"
 fpath = dpath / "Oberriet.SS.Ulrika_discharge.csv"
@@ -12,7 +16,11 @@ fpath = dpath / "Oberriet.SS.Ulrika_discharge.csv"
 #fpath = dpath / "Hergiswil.BS.Rossmoos_discharge.csv"
 df = pd.read_csv(fpath)
 
-q = "discharge(L/min)"
+if "a_msg" in locals():
+  q = qcol()
+else:
+  q = "discharge(L/min)"
+
 qs = "discharge_smooth"
 # do not forget to fill NA when needed by the algo
 df[qs] = df[q].rolling(window=12*60//10).mean().ffill().bfill()
@@ -21,6 +29,7 @@ df[qs] = df[q].rolling(window=12*60//10).mean().ffill().bfill()
 
 peaks, _ = ss.find_peaks(df[qs], prominence=20, distance=24*60//10)
 pw, *_ = ss.peak_widths(df[qs], peaks, rel_height=0.2)
+
 
 print(pd.DataFrame({"peak_width [h]": pw*10/60}).describe())
 
