@@ -66,7 +66,7 @@ if __name__ == "__main__":
     # add noise
     rng = np.random.default_rng()
     factor = 0  # TODO: set this value to e.g. 0.05
-    data = data_latent + rng.normal(loc=0.0, scale=0.05 * np.abs(data_latent).max(),
+    data = data_latent + rng.normal(loc=0.0, scale=factor * np.abs(data_latent).max(),
                                     size=data_latent.shape)
     t = np.arange(data.size)
 
