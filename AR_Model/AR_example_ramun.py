@@ -21,8 +21,7 @@ from statsmodels.tsa.stattools import adfuller
 # useful link: https://www.statsmodels.org/dev/examples/notebooks/generated/predict.html
 # https://www.statsmodels.org/dev/examples/notebooks/generated/autoregressions.html
 
-#Path to used dataset
-data_path = Path(__file__).parent / ".." / "Data/spring_data/resampled_data/Ulrika/Ulrika_H.csv"
+# %%
 
 def get_ulrika(show_plot):
     ulrika = pd.read_csv(data_path)
@@ -47,69 +46,82 @@ def get_ulrika(show_plot):
 
     return ulrika_d
 
+# %%
+# Load data
+# -----------
+#Path to used dataset
+data_path = Path(__file__).parent / ".." / "Data/spring_data/resampled_data/Ulrika/Ulrika_H.csv"
 
 df = get_ulrika(False)
-df = df.dropna()
 
-discharge = df["discharge(L/min)"]
-df = pd.DataFrame({
+qcol = "discharge(L/min)"
+data = df[[qcol]].copy()
+# set timedelta index
+data.index = df.datetime - df.datetime.min()
+data.index.name = "time"
 
-    'discharge': df['discharge(L/min)']
-})
 
-pacf = plot_pacf(df.discharge, lags=100)
+# %%
+# Explore data
+# ------------
+# %%
 # Check for stationarity of the time-series data
 # In case, p-value is less than 0.05, the time series
-# data can said to have stationarity
+# data can be said to be stationary
 
-stationarityTest = adfuller(discharge, autolag='AIC')
-#
-# Check the value of p-value
-#
+stationarityTest = adfuller(data, autolag='AIC')
 print("P-value: ", stationarityTest[1])
-#
+
+# %%
+# Auto-correlation
+# *****************
 # Next step is to find the order of AR model to be trained
 # for this, we will plot partial autocorrelation plot to assess
 # the direct effect of past data on future data
 #
-pacf = plot_pacf(discharge, lags=25)
+pacf = plot_pacf(data, lags=25)
 
-df['dlog'] = np.log(df.discharge)
-df['t'] = range(len(df))
+# %%
+# Fit model
+# ----------
+# transform data
+data[f"log_{qcol}"] = np.log(df[qcol])
+nsteps = df.shape[0]
 
+# %%
 # split data
-trn_end = round(np.size(df.discharge) / 4)
-trn = df.iloc[:trn_end]['discharge'].dropna()
-tst = df.iloc[trn_end:]['discharge'].dropna()
+trn_end = int(nsteps * 0.75)
+trn = data[qcol].iloc[:trn_end]
+tst = data[qcol].iloc[trn_end:]
 
 # Fit using statsmodel
-l = np.array([1, 3, 4, 5])
-mod = AutoReg(trn, l, old_names=False)
+l = np.array([1, 2, 7, 9, 10, 11, 12])  # lags based on PACF
+mod = AutoReg(trn.to_numpy(), l, old_names=False)
 res = mod.fit()
 print(res.summary())
 
-data_ = res.predict(end=np.size(df.index) - 1, dynamic=trn_end)
+data["model"] = res.predict(end=nsteps-1, dynamic=trn_end)
 
 fig, ax = plt.subplots()
-ax.plot(df.t, df.discharge, "-", label="latent")
-ax.plot(df.t[:trn_end], trn, "o", label="training")
-ax.plot(df.t[trn_end:], tst, "x", label="testing")
-ax.plot(data_.index, data_, "--", label="model")
+data[qcol].plot(ax=ax)
+ax.plot(trn, "o", label="training", )
+ax.plot(tst,  "x", label="testing",)
+ax.plot(data.model, "--", label="model")
 plt.legend()
 
 # %%
-train_cutoff = np.size(df) / 3
-validate_cutoff = np.size(df) / 3 * 2
-
-train_df = df[df['t'] <= train_cutoff]
-select_df = df[(df['t'] > train_cutoff) & (df['t'] <= validate_cutoff)]
-forecast_df = df[df['t'] > validate_cutoff]
-
-plt.plot(train_df.t, train_df.discharge, label='Training data')
-plt.plot(select_df.t, select_df.discharge, label='Model selection holdout')
-plt.legend()
-plt.title('Data overview')
-plt.ylabel('discharge')
-plt.xlabel('Index')
+# train_cutoff = np.size(df) / 3
+# validate_cutoff = np.size(df) / 3 * 2
+#
+# train_df = df[df['t'] <= train_cutoff]
+# select_df = df[(df['t'] > train_cutoff) & (df['t'] <= validate_cutoff)]
+# forecast_df = df[df['t'] > validate_cutoff]
+#
+# plt.plot(train_df.t, train_df.discharge, label='Training data')
+# plt.plot(select_df.t, select_df.discharge, label='Model selection holdout')
+# plt.legend()
+# plt.title('Data overview')
+# plt.ylabel('discharge')
+# plt.xlabel('Index')
 
 plt.show()
