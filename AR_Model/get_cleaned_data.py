@@ -3,7 +3,7 @@ def get_ulrika(show_plot):
     spring_name = 'Ulrika'
     meteo_name = 'Freienbach'
     resolution = (
-    'H', 'D')  # temporal resolution of spring and precipitation: '10min' 'H', 'D', 'M'  # 10min not for all meteo st.
+    'H', 'D')  # temporal resolution of spring_name and precipitation: '10min' 'H', 'D', 'M'  # 10min not for all meteo st.
     start = None
     end = None
     res_spring = resolution[0]
@@ -15,9 +15,9 @@ def get_ulrika(show_plot):
     if show_plot:
         fig, ax_flow = plt.subplots(figsize=(15, 9))
 
-        # Plot the spring data
+        # Plot the spring_name data
         ax_flow.plot(ulrika_d.index, ulrika_d['discharge(L/min)'], linewidth=1, color="blue",
-                 label='spring discharge', zorder=1)
+                 label='spring_name discharge', zorder=1)
         plt.ylabel('Discharge [l/min]')
         plt.title('Filtered Dataframe (ulrika_d)')
 

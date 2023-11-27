@@ -45,7 +45,7 @@ def import_resampled_data(save_path):
         # Initialize a dictionary for the current folder
         resampled_dfs = {}
 
-        # Iterate over files in the spring folder
+        # Iterate over files in the spring_name folder
         for file in files:
             # Store resampled df in the dictionary
             resolution = file.split('_')[-1].split('.')[0]
@@ -94,7 +94,7 @@ def spring_description_from_filename(filename):
     filename_split = filename.split('.')
     spring_name_split = filename_split[2].split('_')
     spring_name_split.remove('discharge')
-    spring_description = '{} spring at {}'.format(' '.join([item for item in spring_name_split]), filename_split[0])
+    spring_description = '{} spring_name at {}'.format(' '.join([item for item in spring_name_split]), filename_split[0])
     return spring_description
 
 

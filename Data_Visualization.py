@@ -186,7 +186,7 @@ def plot_spring_precipitation_mc_interactive(mc_data, spring_name, meteo_name, r
     bar_widths = {'H': 0.2, 'D': 1, 'M': 1}  # width for the precipitation bars
     opacity_bar = {'H': 1, 'D': 1, 'M': 0.5}  # transparency for the precipitation bars
 
-    # get temporal resolution for spring discharge and precipitation data
+    # get temporal resolution for spring_name discharge and precipitation data
     res_spring = resolution[0]
     res_precip = resolution[1]
 
@@ -208,8 +208,8 @@ def plot_spring_precipitation_mc_interactive(mc_data, spring_name, meteo_name, r
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Plot the spring data on the primary y-axis
-    fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df['discharge(L/min)'], line=dict(width=1, color=spring_c), mode='lines', name='spring discharge'), secondary_y=False)
+    # Plot the spring_name data on the primary y-axis
+    fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df['discharge(L/min)'], line=dict(width=1, color=spring_c), mode='lines', name='spring_name discharge'), secondary_y=False)
     # Plot data from mc_data
     fig.add_trace(go.Scatter(x=mc_data["datetime"], y=mc_data['discharge [L/min]'], mode ='markers', marker=dict(size=8, color="red"),name='mc discharge'), secondary_y=False)
 
@@ -226,7 +226,7 @@ def plot_spring_precipitation_mc_interactive(mc_data, spring_name, meteo_name, r
 
     # Configure plot layout and labels
     fig.update_layout(
-        title=f'{spring_name} spring ({res_spring}) and {meteo_name} Meteo station ({res_precip}) ',
+        title=f'{spring_name} spring_name ({res_spring}) and {meteo_name} Meteo station ({res_precip}) ',
         xaxis_title='Datetime',
         yaxis_title='Discharge [L/min]',
         xaxis=dict(tickangle=45),
@@ -280,7 +280,7 @@ def plot_spring_mc_static(mc_data,spring_name, resampled_spring_data_dfs,
         bar_widths = {'H': 0.2, 'D': 1, 'M': 20}  # width for the precipitation bars
         opacity_bar = {'H': 1, 'D': 0.8, 'M': 0.7}  # transparency for the precipitation bars
 
-        # get temporal resolution for spring discharge and precipitation data
+        # get temporal resolution for spring_name discharge and precipitation data
         res_spring = resolution[0]
 
 
@@ -297,8 +297,8 @@ def plot_spring_mc_static(mc_data,spring_name, resampled_spring_data_dfs,
         # Create a figure
         fig, ax_flow = plt.subplots(figsize=(15, 9))
 
-        # Plot the spring data
-        ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c, label='spring discharge')
+        # Plot the spring_name data
+        ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c, label='spring_name discharge')
 
         # Plot the mc_data as red points
         ax_flow.scatter(mc_data['datetime'], mc_data['discharge [L/min]'], color='red', label='mc discharge', s=10)
@@ -331,7 +331,7 @@ def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_
     bar_widths = {'H': 0.2, 'D': 1, 'M': 20}  # width for the precipitation bars
     opacity_bar = {'H': 1, 'D': 0.8, 'M': 0.7}  # transparency for the precipitation bars
 
-    # get temporal resolution for spring discharge and precipitation data
+    # get temporal resolution for spring_name discharge and precipitation data
     res_spring = resolution[0]
     res_precip = resolution[1]
 
@@ -349,10 +349,10 @@ def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_
     nr_meteo = len(meteo_names)
     if nr_meteo > 1:  # more than one meteo station
         fig, axs = plt.subplots(nrows=nr_meteo + 1, ncols=1, figsize=(15, 9), sharex=True)  # create an empty figure
-        # plot the spring data
+        # plot the spring_name data
         axs[nr_meteo].plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c,
-                               label='spring discharge')
-        axs[nr_meteo].set_title(f'{spring_name} spring at resolution {res_spring}')
+                               label='spring_name discharge')
+        axs[nr_meteo].set_title(f'{spring_name} spring_name at resolution {res_spring}')
         # create colored axis
         axs[nr_meteo].set_ylabel('Discharge [L/min]', color=spring_c)
         axs[nr_meteo].tick_params(axis='y', labelcolor=spring_c)
@@ -375,9 +375,9 @@ def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_
         # Create a figure
         fig, ax_flow = plt.subplots(figsize=(15, 9))
 
-        # Plot the spring data
+        # Plot the spring_name data
         ax_flow.plot(spring_df.index, spring_df['discharge(L/min)'], linewidth=1, color=spring_c,
-                     label='spring discharge')
+                     label='spring_name discharge')
 
         # Create a secondary y-axis for precipitation
         ax_prec = ax_flow.twinx()
@@ -387,7 +387,7 @@ def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_
         ax_prec.invert_yaxis()
 
         # Configure plot labels and titles
-        ax_flow.set_title(f'{spring_name} spring ({res_spring}) and {meteo_names[0]} Meteo station ({res_precip})')
+        ax_flow.set_title(f'{spring_name} spring_name ({res_spring}) and {meteo_names[0]} Meteo station ({res_precip})')
         ax_flow.set_ylabel('Discharge [L/min]', color=spring_c)
         ax_prec.set_ylabel(f'Precipitation sum [mm/{res_precip.lower()}]', color=precip_c)
         ax_flow.tick_params(axis='y', labelcolor=spring_c)
@@ -415,7 +415,7 @@ def plot_spring_precipitation_interactive(spring_name, meteo_name, resampled_spr
     bar_widths = {'H': 0.2, 'D': 1, 'M': 1}  # width for the precipitation bars
     opacity_bar = {'H': 1, 'D': 1, 'M': 0.5}  # transparency for the precipitation bars
 
-    # get temporal resolution for spring discharge and precipitation data
+    # get temporal resolution for spring_name discharge and precipitation data
     res_spring = resolution[0]
     res_precip = resolution[1]
 
@@ -437,8 +437,8 @@ def plot_spring_precipitation_interactive(spring_name, meteo_name, resampled_spr
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Plot the spring data on the primary y-axis
-    fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df['discharge(L/min)'], line=dict(width=1, color=spring_c), mode='lines', name='spring discharge'), secondary_y=False)
+    # Plot the spring_name data on the primary y-axis
+    fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df['discharge(L/min)'], line=dict(width=1, color=spring_c), mode='lines', name='spring_name discharge'), secondary_y=False)
 
     # Plot the precipitation data on the secondary y-axis
     fig.add_trace(go.Bar(x=precip_df.index, y=precip_df['rre150h0'], opacity=opacity_bar[res_precip], marker=dict(color=precip_c, line=dict(color=precip_c, width=bar_widths[res_precip])), name=f'precipitation sum', yaxis="y2"), secondary_y=True)
@@ -453,7 +453,7 @@ def plot_spring_precipitation_interactive(spring_name, meteo_name, resampled_spr
 
     # Configure plot layout and labels
     fig.update_layout(
-        title=f'{spring_name} spring ({res_spring}) and {meteo_name} Meteo station ({res_precip}) ',
+        title=f'{spring_name} spring_name ({res_spring}) and {meteo_name} Meteo station ({res_precip}) ',
         xaxis_title='Datetime',
         yaxis_title='Discharge [L/min]',
         xaxis=dict(tickangle=45),
@@ -471,7 +471,7 @@ def plot_spring_temperature_static(spring_name, meteo_names, resampled_spring_da
     window_size = {'H': 24, 'D': 10, 'W': 4, 'M': 1}
     lw = 2  # linewidth
 
-    # get temporal resolution for spring discharge and precipitation data
+    # get temporal resolution for spring_name discharge and precipitation data
     res_spring = resolution[0]
     res_temp = resolution[1]
 
@@ -484,7 +484,7 @@ def plot_spring_temperature_static(spring_name, meteo_names, resampled_spring_da
     spring_df = resampled_spring_data_dfs[spring_name][res_spring]['temperature(C)'][start:end].rolling(window=7).mean()
 
     fig, ax = plt.subplots(figsize=(15, 9))  # create an empty figure
-    # plot the spring data
+    # plot the spring_name data
     ax.plot(spring_df.index, spring_df.values, linewidth=lw, color=spring_c,
                            label=f'{spring_name} Water')
 
@@ -494,7 +494,7 @@ def plot_spring_temperature_static(spring_name, meteo_names, resampled_spring_da
         ax.plot(temp_df.index, temp_df.values, linewidth=lw, color=temp_c[i], label=f'{meteo_name} Air')
 
     # Configure plot labels and titles
-    ax.set_title(f'{spring_name} spring')
+    ax.set_title(f'{spring_name} spring_name')
     ax.set_ylabel('Temperature [C]')
     ax.set_xlabel('Datetime')
     # Set the x-axis range based on the minimum and maximum date values
@@ -518,7 +518,7 @@ def plot_spring_temperature_interactive(spring_name, meteo_names, resampled_spri
     temp_c = ['red', 'green']
     window_size = {'H': 24, 'D': 10, 'W': 4, 'M': 1}
 
-    # get temporal resolution for spring discharge and precipitation data
+    # get temporal resolution for spring_name discharge and precipitation data
     res_spring = resolution[0]
     res_temp = resolution[1]
 
@@ -533,7 +533,7 @@ def plot_spring_temperature_interactive(spring_name, meteo_names, resampled_spri
     # Create an interactive figure using Plotly
     fig = go.Figure()
 
-    # Plot the spring data on the primary y-axis
+    # Plot the spring_name data on the primary y-axis
     fig.add_trace(go.Scatter(x=spring_df.index, y=spring_df.values, line=dict(width=1, color=spring_c), mode='lines', name=spring_name))
     # Plot the air temperature
     for i, meteo_name in enumerate(meteo_names):
@@ -546,7 +546,7 @@ def plot_spring_temperature_interactive(spring_name, meteo_names, resampled_spri
 
     # Configure plot layout and labels
     fig.update_layout(
-        title=f'{spring_name} spring',
+        title=f'{spring_name} spring_name',
         xaxis_title='Datetime',
         yaxis_title='Temperature [C]',
         #showgrid=True
@@ -626,7 +626,7 @@ def plot_cross_correlation_spring_meteo_multiple(spring_name, meteo_names, corr_
     # plot settings
     ax.set_xlabel('Time Lag [d]')
     ax.set_ylabel('Pearson Cross-Correlation Value')
-    ax.set_title(f'{spring_name} spring cross-correlation')
+    ax.set_title(f'{spring_name} spring_name cross-correlation')
     ax.grid(True)
 
     # Set the x-limits to the calculated range
@@ -658,7 +658,7 @@ def show_interactive_peak_plot(name, time_series, smoothed_signal, peaks):
     # Customize the layout of the plot
     fig.update_xaxes(title_text='Datetime')
     fig.update_yaxes(title_text='Signal Value')
-    fig.update_layout(title=f'Peak Detection for spring {name}')
+    fig.update_layout(title=f'Peak Detection for spring_name {name}')
     fig.show()
 
 
@@ -679,7 +679,7 @@ def save_static_peak_plot(name, time_series, smoothed_signal, peaks, save_path):
     # Customize the layout of the plot
     ax.tick_params(axis='x', rotation=45)
     ax.set_ylabel('Discharge [L/min]')
-    ax.set_title(f'Peak Detection for spring {name}')
+    ax.set_title(f'Peak Detection for spring_name {name}')
     ax.legend()
 
     #ax.set_xlim([pd.to_datetime('2021-10-01'), pd.to_datetime('2022-07-20')])
@@ -708,7 +708,7 @@ def plot_peak_width_boxplots(spring_peaks_dfs, save_path, show_labels=True):
     # Create a box plot for each dataset's peak width data
     box = ax.boxplot(peak_width_data, showmeans=True)
 
-    # Set the spring names as x-axis labels
+    # Set the spring_name names as x-axis labels
     ax.set_xticklabels({key: spring_peaks_dfs[key] for key in selected_springs}.keys(), rotation=0)
 
     # Add numbers and labels on the plot

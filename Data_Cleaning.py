@@ -44,9 +44,9 @@ def get_ulrika(show_plot, resampled_spring_data_dfs, resolution, start, end):
     if show_plot:
         fig, ax_flow = plt.subplots(figsize=(15, 9))
 
-        # Plot the spring data
+        # Plot the spring_name data
         ax_flow.plot(ulrika_d.index, ulrika_d['discharge(L/min)'], linewidth=1, color="blue",
-                 label='spring discharge', zorder=1)
+                 label='spring_name discharge', zorder=1)
         plt.ylabel('Discharge [l/min]')
         plt.title('Filtered Dataframe (ulrika_d)')
 
@@ -68,7 +68,7 @@ def add_timezone_mc(mc_u,mc_pf):
 
 
 def resample_and_save_spring_data(df, resolutions, save_path, spring_name, new_data_available):
-    # create the folder for the spring if it does not exist yet
+    # create the folder for the spring_name if it does not exist yet
     spring_folder = os.path.join(save_path, spring_name)
     Helper.create_directory(spring_folder)
     # save the original valid data

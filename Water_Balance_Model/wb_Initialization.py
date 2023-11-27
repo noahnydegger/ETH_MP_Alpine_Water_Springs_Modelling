@@ -1,17 +1,24 @@
 import pandas as pd  # data processing
 import numpy as np  # data processing
+import os
 
-import Data_Import
-import Helper
+
+def get_catchment_parameters(spring_name):
+    # Catchment properties
+    if spring_name == 'Ulrika':
+        fixed_parameters = {
+            'latitude': 46.5,  # mean Latitude [deg]
+            'elevation': 1590  # mean elevation [masl]
+        }
+    elif spring_name == 'Paliu_Fravi':
+        fixed_parameters = {
+            'latitude': 46.5,  # mean Latitude [deg]
+            'elevation': 1590  # mean elevation [masl]
+        }
+    return fixed_parameters
 
 
 def get_model_parameters():
-    # Catchment properties
-    fixed_parameters = {
-        'latitude': 46.5,  # mean Latitude [deg]
-        'elevation': 1590  # mean elevation [masl]
-    }
-
     # Model parameters
     variable_parameters = {
         'area': 389459,  # estimated area [m ^ 2]
@@ -30,13 +37,13 @@ def get_model_parameters():
         'PETc': 237.3
     }
 
-    return fixed_parameters, variable_parameters, pet_Hamon_parameters
+    return variable_parameters, pet_Hamon_parameters
 
 
 def create_spring_input(spring_name, path_to_data_folder, variable_parameters, resolution='D'):
-    # load spring data
-    spring_data = Data_Import.import_data_from_csv_file(Helper.find_file_by_name(f'{spring_name}_{resolution}',
-                                                                                 path_to_data_folder, 'csv'))
+    # load spring_name data
+    spring_data = import_data_from_csv_file(find_file_by_name(f'{spring_name}_{resolution}',
+                                                              path_to_data_folder, 'csv'))
 
     # Create a DataFrame to store model variables
     wb_df = pd.DataFrame(index=spring_data.index)
@@ -49,8 +56,8 @@ def create_spring_input(spring_name, path_to_data_folder, variable_parameters, r
 def create_temperature_input(wb_df, meteo_name, path_to_data_folder, resolution):
 
     # load temperature data
-    temp_data = Data_Import.import_data_from_csv_file(Helper.find_file_by_name(f'{meteo_name}_temp_H',
-                                                                               path_to_data_folder, 'csv'))
+    temp_data = import_data_from_csv_file(find_file_by_name(f'{meteo_name}_temp_H',
+                                                            path_to_data_folder, 'csv'))
 
     # add a column with min temperature
     wb_df = wb_df.merge(temp_data['temperature(C)'].resample(resolution).min(), how='left', left_index=True,
@@ -73,8 +80,8 @@ def create_temperature_input(wb_df, meteo_name, path_to_data_folder, resolution)
 
 def create_rain_and_snow_input(wb_df, temp_data, meteo_name, model_parameters, path_to_data_folder, resolution):
     # load precipitation data
-    precip_data = Data_Import.import_data_from_csv_file(Helper.find_file_by_name(f'{meteo_name}_precip_H',
-                                                                                 path_to_data_folder, 'csv'))
+    precip_data = import_data_from_csv_file(find_file_by_name(f'{meteo_name}_precip_H',
+                                                              path_to_data_folder, 'csv'))
     precip_data.rename(columns={'rre150h0': 'precipitation(mm)'}, inplace=True)
 
     # add a column with precipitation
@@ -134,21 +141,21 @@ def create_potential_evapotranspiration_input(wb_df, resolution):
 def create_model_parameter_columns(wb_df):
     num_rows = len(wb_df)  # Get the number of rows from the existing DataFrame
     # Add columns for model variables with initial values of 0
-    wb_df['aET(mm)'] = [0] * num_rows  # actual evapotranspiration
-    wb_df['snow_melt(mm)'] = [0] * num_rows  # snow melt in mm water equivalent
-    wb_df['snow_cover(mm)'] = [0] * num_rows  # snow cover in mm water equivalent
-    wb_df['storage_soil(mm)'] = [0] * num_rows  # water saturation in the soil reservoir
-    wb_df['storage_gw(mm)'] = [0] * num_rows  # water storage in the groundwater reservoir
-    wb_df['runoff(mm)'] = [0] * num_rows  # surface runoff
-    wb_df['percolation_gw(mm)'] = [0] * num_rows  # percolation from saturated soil to groundwater reservoir
-    wb_df['discharge_sim(mm)'] = [0] * num_rows  # spring discharge simulated
+    wb_df['aET(mm)'] = [0.0] * num_rows  # actual evapotranspiration
+    wb_df['snow_melt(mm)'] = [0.0] * num_rows  # snow melt in mm water equivalent
+    wb_df['snow_cover(mm)'] = [0.0] * num_rows  # snow cover in mm water equivalent
+    wb_df['storage_soil(mm)'] = [0.0] * num_rows  # water saturation in the soil reservoir
+    wb_df['storage_gw(mm)'] = [0.0] * num_rows  # water storage in the groundwater reservoir
+    wb_df['runoff(mm)'] = [0.0] * num_rows  # surface runoff
+    wb_df['percolation_gw(mm)'] = [0.0] * num_rows  # percolation from saturated soil to groundwater reservoir
+    wb_df['discharge_sim(mm)'] = [0.0] * num_rows  # spring discharge simulated
 
     return wb_df
 
 
 def create_model_input_df(spring_name, meteo_name, fixed_parameters, variable_parameters, path_to_data_folder, resolution='D'):
     # create a dataframe to store the water balance model timeseries
-    # adds a column with the measured spring discharge
+    # adds a column with the measured spring_name discharge
     wb_df = create_spring_input(spring_name, path_to_data_folder, variable_parameters, resolution)
 
     # adds column with min, max, mean temperature
@@ -163,3 +170,43 @@ def create_model_input_df(spring_name, meteo_name, fixed_parameters, variable_pa
     wb_df = create_model_parameter_columns(wb_df)
 
     return wb_df
+
+
+def initialize_model(spring_name, path_to_data_folder):
+    if spring_name == 'Ulrika':
+        meteo_name = 'Freienbach'
+    elif spring_name == 'Paliu_Fravi':
+        meteo_name = 'Chur'
+    else:
+        raise ValueError(f"expected 'Ulrika' or 'Paliu_Fravi' as spring_name but got {spring_name}.")
+
+    fixed_parameters = get_catchment_parameters(spring_name)
+    variable_parameters, pet_Hamon_parameters = get_model_parameters()
+    wb_df = create_model_input_df(spring_name, meteo_name, fixed_parameters, variable_parameters, path_to_data_folder)
+
+    return fixed_parameters, variable_parameters, wb_df
+
+
+def find_file_by_name(filename, startFolder, filetype):
+    # search for the filepath of a single file
+    if filetype.lower() not in filename.lower():
+        filename = '{}.{}'.format(filename, filetype.lower())  # add filetype
+
+    filefound = False
+    for root, dirs, files in os.walk(startFolder):  # Walking top-down from the startFolder looking for the file
+        if filename.lower() in [file.lower() for file in files]:
+            filefound = True
+            path_to_file = os.path.join(root, filename)
+
+    if not filefound:
+        path_to_file = ''
+        print('{} not found within directory {}'.format(filename, startFolder))
+    return path_to_file
+
+
+def import_data_from_csv_file(filepath):
+    df = pd.read_csv(filepath)  # read csv
+    df['datetime'] = pd.to_datetime(df['datetime'])
+    # convert column to datetime format
+    df.set_index('datetime', inplace=True)  # set date as index
+    return df

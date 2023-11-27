@@ -4,9 +4,9 @@ from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.model_selection import GridSearchCV
 from scipy import optimize
 
-import WatBal_Initialization
-import WatBal_Computation
-import WatBal_Visualization
+import wb_Initialization
+import wb_Computation
+import wb_Visualization
 
 
 def objective_function(variable_parameters, wb_df, tscv):

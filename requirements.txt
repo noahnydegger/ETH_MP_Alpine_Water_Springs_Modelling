@@ -5,7 +5,7 @@ scikit-learn
 
 pandas
 
-path
+pathlib
 
 python-dateutil
 

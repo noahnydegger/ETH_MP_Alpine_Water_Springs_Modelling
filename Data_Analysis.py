@@ -19,12 +19,12 @@ def cross_correlation_time_series_multiple(spring_name, meteo_names, resampled_s
         return "-"
         # Handle other cases
 
-    # select spring dataframe
+    # select spring_name dataframe
     spring_df = resampled_spring_dfs[spring_name][resolution][col_names[0]]
 
     # Ensure that the spring_df series has a date-time index
     if not isinstance(spring_df.index, pd.DatetimeIndex):
-        raise ValueError("The spring series must have a date-time index.")
+        raise ValueError("The spring_name series must have a date-time index.")
 
     # Fill rows containing nan from the spring_df: otherwise correlate does not work
     if data_type == 'precipitation':
@@ -48,7 +48,7 @@ def cross_correlation_time_series_multiple(spring_name, meteo_names, resampled_s
         else:  # for temperature
             meteo_df = meteo_df.rolling(window=7*24).mean().ffill().bfill()
 
-        # Align the spring and meteo_df series by the date-time index
+        # Align the spring_name and meteo_df series by the date-time index
         common_index = spring_df.index.intersection(meteo_df.index)
         spring_df_aligned = spring_df.loc[common_index]
         meteo_df_aligned = meteo_df.loc[common_index]
@@ -90,7 +90,7 @@ def cross_correlation_time_series_multiple(spring_name, meteo_names, resampled_s
 
 
 def find_spring_peaks(spring_name, discharge_df, path_to_plot_folder, window_length, polyorder, prominence_threshold, distance, show_plot=False, save_plot=False):
-    # select the spring data
+    # select the spring_name data
     discharge_df = discharge_df['discharge(L/min)']
     # Smooth the signal using Savitzky-Golay filter
     smoothed_signal = savgol_filter(discharge_df.values, window_length, polyorder)

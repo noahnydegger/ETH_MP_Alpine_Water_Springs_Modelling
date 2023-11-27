@@ -27,6 +27,7 @@ def compute_rain_and_snow(df, melt_rate, melt_temp):
     S(Tmin_b<=0&Tmax_b>0)=P(Tmin_b<=0&Tmax_b>0)-R(Tmin_b<=0&Tmax_b>0);
     '''
 
+
 def compute_daily_PET_by_Hamon():
     # Compute ET with routine by Hamon
     '''
