@@ -41,10 +41,10 @@ def compute_daily_PET_by_Hamon():
         '''
 
 
-def compute_water_balance(wb_df, fixed_parameters, variable_parameters):
-    # params, Lat, Tsm, PETa, PETb, PETc, Qobs, R, S, T_b, Jday, SC, M, Ss, PET, ET, Qsurf, PER_gw, Qgw, Sg, Qsim
+def compute_water_balance_iterative(wb_df, fixed_parameters, variable_parameters):
+    use_sigmoid = True
     # Parameters for calibration
-    area, max_saturation, rg, melt_rate, fr, melt_temp, lapse_rate = tuple(variable_parameters.values())
+    area, max_saturation, rg, melt_rate, fr, melt_temp, lapse_rate = variable_parameters
 
     # set initial values
     wb_df.loc[wb_df.index[0], ['storage_soil(mm)']] = [10]
@@ -55,28 +55,30 @@ def compute_water_balance(wb_df, fixed_parameters, variable_parameters):
     y = wb_df.index.tolist()[0]
     # iterate over df row by row
     for i in wb_df.index.tolist():
-        #i = wb_df.index[j]
-        # Compute Snow melt
-        if wb_df['mean_temperature(C)'][i] > melt_temp:
-            wb_df.loc[i, 'snow_melt(mm)'] = np.minimum(melt_rate * (wb_df['mean_temperature(C)'][i] - melt_temp),
-                                                       wb_df['snow_cover(mm)'][y])
-
-        # Compute Snow cover
-        wb_df.loc[i, 'snow_cover(mm)'] = (wb_df['snow_cover(mm)'][y] - wb_df['snow_melt(mm)'][i] +
-                                          wb_df['snow_fall(mm)'][i])
-
         # Compute potential soil zone water content without accounting for percolation
         wb_df.loc[i, 'storage_soil(mm)'] = wb_df['storage_soil(mm)'][y] + wb_df['rain_fall(mm)'][i] - wb_df['aET(mm)'][i]
 
-        # Compute surface runoff
-        if wb_df['storage_soil(mm)'][i] > max_saturation:
-            wb_df.loc[i, 'runoff(mm)'] = (wb_df['rain_fall(mm)'][i] + wb_df['snow_melt(mm)'][i]) * fr
+        if use_sigmoid:
+            sigma = soil_storage_sigmoid(wb_df.loc[i, 'storage_soil(mm)'], max_saturation)
+            # Compute surface runoff
+            wb_df.loc[i, 'runoff(mm)'] = (wb_df['rain_fall(mm)'][i] + wb_df['snow_melt(mm)'][i]) * fr * sigma
             wb_df.loc[i, 'storage_soil(mm)'] = wb_df['storage_soil(mm)'][i] - wb_df['runoff(mm)'][i]
 
-        # Compute percolation to groundwater reservoir
-        if wb_df['storage_soil(mm)'][i] > max_saturation:
-            wb_df.loc[i, 'percolation_gw(mm)'] = wb_df['storage_soil(mm)'][i] - max_saturation
-            wb_df.loc[i, 'storage_soil(mm)'] = max_saturation
+            # Compute percolation to groundwater reservoir
+            sigma = soil_storage_sigmoid(wb_df.loc[i, 'storage_soil(mm)'], max_saturation)
+            wb_df.loc[i, 'percolation_gw(mm)'] = max((wb_df['storage_soil(mm)'][i] - max_saturation), 0)
+            # adjust soil storage
+            wb_df.loc[i, 'storage_soil(mm)'] = wb_df['storage_soil(mm)'][i] - wb_df['percolation_gw(mm)'][i]
+        else:
+            # Compute surface runoff
+            if wb_df['storage_soil(mm)'][i] > max_saturation:
+                wb_df.loc[i, 'runoff(mm)'] = (wb_df['rain_fall(mm)'][i] + wb_df['snow_melt(mm)'][i]) * fr
+                wb_df.loc[i, 'storage_soil(mm)'] = wb_df['storage_soil(mm)'][i] - wb_df['runoff(mm)'][i]
+
+            # Compute percolation to groundwater reservoir
+            if wb_df['storage_soil(mm)'][i] > max_saturation:
+                wb_df.loc[i, 'percolation_gw(mm)'] = wb_df['storage_soil(mm)'][i] - max_saturation
+                wb_df.loc[i, 'storage_soil(mm)'] = max_saturation
 
 
         # only for one tank model
@@ -87,33 +89,94 @@ def compute_water_balance(wb_df, fixed_parameters, variable_parameters):
         # Groundwater reservoir water balance
         wb_df.loc[i, 'discharge_sim(mm)'] = (1 / rg) * wb_df['storage_gw(mm)'][y]
         wb_df.loc[i, 'storage_gw(mm)'] = max(wb_df['storage_gw(mm)'][y] + wb_df['percolation_gw(mm)'][i] - wb_df['discharge_sim(mm)'][i], 0)
-        #Qgw[Sg < 0] = 0
+
         y = i  # current day is new yesterday
 
-    gof_values = compute_gof_values(wb_df, variable_parameters)
+    # transform units
+    wb_df['discharge_sim(L/min)'] = wb_df['discharge_sim(mm)'] * area / (60 * 24)
+    gof_values = compute_gof_values(wb_df)
 
     return wb_df, gof_values
 
 
-def compute_gof_values(wb_df, variable_parameters):
+def soil_storage_sigmoid(soil_storage, max_saturation, beta=1):
+    return 1 / (1 + np.exp(-beta * (soil_storage - max_saturation)))
+
+
+def compute_water_balance_direct(wb_df, fixed_parameters, variable_parameters):
+    # Parameters for calibration
+    area, max_saturation, rg, melt_rate, fr, melt_temp, lapse_rate = variable_parameters
+
+    # set initial values
+    wb_df.loc[wb_df.index[0], ['storage_soil(mm)']] = [10]
+
+    #compute_rain_and_snow(wb_df, melt_rate, melt_temp)
+    #compute_daily_PET_by_Hamon()
+
+    #input = wb_df['rain_fall(mm)'] + wb_df['snow_melt(mm)']
+
+    # Compute potential soil zone water content without accounting for percolation
+    wb_df['storage_soil(mm)'] = wb_df['storage_soil(mm)'].shift(-1) + input * (1 - fr)
+
+    # Compute surface runoff
+    wb_df['runoff(mm)'] = input * fr * soil_storage_sigmoid(wb_df['storage_soil(mm)'], max_saturation)
+
+
+    # Compute percolation to groundwater reservoir
+    if wb_df['storage_soil(mm)'][i] > max_saturation:
+        wb_df.loc[i, 'percolation_gw(mm)'] = wb_df['storage_soil(mm)'][i] - max_saturation
+        wb_df.loc[i, 'storage_soil(mm)'] = max_saturation
+
+
+    # only for one tank model
+    #wb_df.loc[i, 'discharge_sim(mm)'] = (1 / rg) * wb_df['storage_soil(mm)'][i] + wb_df['percolation_gw(mm)'][i]
+    #wb_df.loc[i, 'storage_soil(mm)'] = wb_df['storage_soil(mm)'][i] - wb_df['discharge_sim(mm)'][i]
+
+
+    # Groundwater reservoir water balance
+    wb_df.loc['discharge_sim(mm)'] = (1 / rg) * wb_df['storage_gw(mm)'].shift(-1)
+    wb_df.loc['storage_gw(mm)'] = max(wb_df['storage_gw(mm)'].shift(-1) + wb_df['percolation_gw(mm)'] - wb_df['discharge_sim(mm)'], 0)
+
+    # transform units
+    wb_df['discharge_sim(L/min)'] = wb_df['discharge_sim(mm)'] * area / (60 * 24)
+    gof_values = compute_gof_values(wb_df)
+
+    return wb_df, gof_values
+
+
+def compute_gof_values(wb_df):
     # Store dataframe columns in separate variables
-    discharge_meas = wb_df['discharge_meas(mm)'] * variable_parameters['area'] / (60 * 24)
-    discharge_sim = wb_df['discharge_sim(mm)'] * variable_parameters['area'] / (60 * 24)
+    q_meas = wb_df.loc[wb_df['valid'], 'discharge_meas(L/min)']
+    q_sim = wb_df.loc[wb_df['valid'], 'discharge_sim(L/min)']
 
     # Calculate Goodness-of-Fit values
     gof_values = {
-        'NSE': 1 - np.sum((discharge_meas - discharge_sim) ** 2) / np.sum(
-            (discharge_meas - np.nanmean(discharge_meas)) ** 2),
+        'NSE': 1 - np.sum((q_meas - q_sim) ** 2) / np.sum(
+            (q_meas - np.nanmean(q_meas)) ** 2),
         'KGE': 1 - np.sqrt(
-            (np.corrcoef(discharge_meas, discharge_sim)[0, 1] - 1) ** 2 +
-            ((np.std(discharge_sim) / np.std(discharge_meas) - 1) ** 2) +
-            ((np.mean(discharge_sim) / np.mean(discharge_meas) - 1) ** 2)),
-        'Bias': 1 / len(discharge_meas) * np.sum(discharge_sim - discharge_meas),
-        'PBias': 100 * (np.mean(discharge_meas) - np.mean(discharge_sim)) / np.mean(discharge_meas),
-        'MAE': 1 / len(discharge_meas) * np.sum(np.abs(discharge_meas - discharge_sim)),
-        'RMSE': np.sqrt(1 / len(discharge_meas) * np.sum((discharge_sim - discharge_meas) ** 2)),
-        'MAD': np.max(discharge_sim - discharge_meas),
-        'MPD': np.max(discharge_sim) - np.max(discharge_meas)
+            (np.corrcoef(q_meas, q_sim)[0, 1] - 1) ** 2 +
+            ((np.std(q_sim) / np.std(q_meas) - 1) ** 2) +
+            ((np.mean(q_sim) / np.mean(q_meas) - 1) ** 2)),
+        'Bias': 1 / len(q_meas) * np.sum(q_sim - q_meas),
+        'PBias': 100 * (np.mean(q_meas) - np.mean(q_sim)) / np.mean(q_meas),
+        'MAE': 1 / len(q_meas) * np.sum(np.abs(q_meas - q_sim)),
+        'RMSE': np.sqrt(1 / len(q_meas) * np.sum((q_sim - q_meas) ** 2)),
+        'MAD': np.max(q_sim - q_meas),
+        'MPD': np.max(q_sim) - np.max(q_meas)
     }
 
     return gof_values
+
+
+def callback(xk, convergence=None):
+    # xk is the current parameter vector
+    # convergence is the current convergence value (optional)
+
+    # Custom logging or storage of intermediate results
+    print("Current parameters:", xk)
+
+
+def optimize_over_full_timeseries(variable_parameters, fixed_parameters, wb_df):
+    # Calculate model predictions
+    wb_df, gof_values = compute_water_balance(wb_df, fixed_parameters, variable_parameters)
+    return gof_values['RMSE']

@@ -9,15 +9,15 @@ import os  # interaction with operating system
 from datetime import datetime
 
 
-def first_impression_plot(spring_name, wb_df, variable_parameters):
+def first_impression_plot(spring_name, wb_df):
     # Create a Matplotlib figure and axis
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Plot the raw signal in blue
-    ax.plot(wb_df.index, wb_df['discharge_meas(mm)'] * variable_parameters['area'] / (60 * 24), linewidth=1, color='blue', label='discharge measured')
+    ax.plot(wb_df.index, wb_df['discharge_meas(L/min)'], linewidth=1, color='blue', label='discharge measured')
 
     # Plot the smoothed signal in orange
-    ax.plot(wb_df.index, wb_df['discharge_sim(mm)'] * variable_parameters['area'] / (60 * 24), linewidth=1, color='orange', label='discharge simulated')
+    ax.plot(wb_df.index, wb_df['discharge_sim(L/min)'], linewidth=1, color='orange', label='discharge simulated')
 
     # Customize the layout of the plot
     ax.tick_params(axis='x', rotation=45)

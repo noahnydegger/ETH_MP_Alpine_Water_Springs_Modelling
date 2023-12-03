@@ -1,5 +1,6 @@
 import pandas as pd  # data processing
 import numpy as np  # data processing
+from datetime import datetime, timedelta
 import os
 
 
@@ -40,6 +41,30 @@ def get_model_parameters():
     return variable_parameters, pet_Hamon_parameters
 
 
+def initialize_wb_df(spring_name, path_to_data_folder, optimize):
+    var = 'discharge'
+    pkl_file_path = path_to_data_folder / 'water_balance_model' / spring_name / f'wb_{spring_name}_{var}.pkl'
+    wb_df = pd.read_pickle(pkl_file_path)
+
+    for var in ['temperature', 'precipitation']:
+        pkl_file_path = path_to_data_folder / 'water_balance_model' / spring_name / f'wb_{spring_name}_{var}.pkl'
+        var_data = pd.read_pickle(pkl_file_path)
+        var_data.rename(columns={'valid': f'valid_{var}'}, inplace=True)
+        if optimize:
+            wb_df = wb_df.merge(var_data, how='left', left_index=True,
+                        right_index=True)
+            wb_df['valid'] = np.where(wb_df[f'valid_{var}'], wb_df['valid'], False)
+        else:
+            wb_df = wb_df.merge(var_data, how='outer', left_index=True,
+                                right_index=True)
+            wb_df['valid'].fillna(False, inplace=True)
+            wb_df['valid'] = np.where(wb_df[f'valid_{var}'], wb_df['valid'], False)
+
+        wb_df.drop(columns=f'valid_{var}', inplace=True)
+
+    return wb_df
+
+
 def create_spring_input(spring_name, path_to_data_folder, variable_parameters, resolution='D'):
     # load spring_name data
     spring_data = import_data_from_csv_file(find_file_by_name(f'{spring_name}_{resolution}',
@@ -48,8 +73,15 @@ def create_spring_input(spring_name, path_to_data_folder, variable_parameters, r
     # Create a DataFrame to store model variables
     wb_df = pd.DataFrame(index=spring_data.index)
     wb_df['doy'] = wb_df.index.dayofyear  # Julien day = day of the year
+    wb_df['valid'] = True  # set to False later, where spring or meteo data is missing
 
-    wb_df['discharge_meas(mm)'] = spring_data['discharge(L/min)'] * (60 * 24) / variable_parameters['area']
+    wb_df['discharge_meas(L/min)'] = spring_data['discharge(L/min)']
+
+    # exclude (set valid to False) data gaps and invalid measurements from the calibration period
+    wb_df['valid'] = np.where(wb_df['discharge_meas(L/min)'].isna(), False, wb_df['valid'])
+    wb_df['valid'] = np.where(wb_df['discharge_meas(L/min)'] < 5.0, False, wb_df['valid'])
+    if spring_name == 'Ulrika':
+        wb_df['valid'] = np.where(wb_df['discharge_meas(L/min)'] > 2000.0, False, wb_df['valid'])
     return wb_df
 
 
@@ -63,11 +95,12 @@ def create_temperature_input(wb_df, meteo_name, path_to_data_folder, resolution)
     wb_df = wb_df.merge(temp_data['temperature(C)'].resample(resolution).min(), how='left', left_index=True,
                         right_index=True)
     wb_df.rename(columns={'temperature(C)': 'min_temperature(C)'}, inplace=True)
+    wb_df['valid'] = np.where(wb_df['min_temperature(C)'].isna(), False, wb_df['valid'])
 
     wb_df['min_temperature(C)'].ffill().bfill(inplace=True)
 
     # add a column with max temperature
-    wb_df = wb_df.merge(temp_data['temperature(C)'].resample(resolution).max(), how='left',left_index=True,
+    wb_df = wb_df.merge(temp_data['temperature(C)'].resample(resolution).max(), how='left', left_index=True,
                         right_index=True)
     wb_df.rename(columns={'temperature(C)': 'max_temperature(C)'}, inplace=True)
     wb_df['max_temperature(C)'].ffill().bfill(inplace=True)
@@ -78,7 +111,7 @@ def create_temperature_input(wb_df, meteo_name, path_to_data_folder, resolution)
     return wb_df, temp_data
 
 
-def create_rain_and_snow_input(wb_df, temp_data, meteo_name, model_parameters, path_to_data_folder, resolution):
+def create_rain_and_snow_input(wb_df, temp_data, meteo_name, variable_parameters, path_to_data_folder, resolution):
     # load precipitation data
     precip_data = import_data_from_csv_file(find_file_by_name(f'{meteo_name}_precip_H',
                                                               path_to_data_folder, 'csv'))
@@ -86,13 +119,16 @@ def create_rain_and_snow_input(wb_df, temp_data, meteo_name, model_parameters, p
 
     # add a column with precipitation
     wb_df = wb_df.merge(precip_data['precipitation(mm)'].resample(resolution).sum(), how='left', left_index=True, right_index=True)
-    wb_df['precipitation(mm)'].fillna(0, inplace=True)
+
+    # exclude (set valid to False) data gaps from the calibration period
+    wb_df['valid'] = np.where(wb_df['precipitation(mm)'].isna(), False, wb_df['valid'])
+    #wb_df['precipitation(mm)'].fillna(0, inplace=True)
 
     meteo_data = precip_data.merge(temp_data['temperature(C)'], how='inner', left_index=True, right_index=True)
 
     # compute rain fall and snow fall with hourly resolution depending on snow melt temperature
-    melt_rate = model_parameters['melting_rate']
-    melt_temp = model_parameters['melting_temperature']
+    melt_rate = variable_parameters['melting_rate']
+    melt_temp = variable_parameters['melting_temperature']
     meteo_data['rain_fall(mm)'] = np.where(meteo_data['temperature(C)'] > melt_temp, meteo_data['precipitation(mm)'], 0)
     meteo_data['snow_fall(mm)'] = np.where(meteo_data['temperature(C)'] < melt_temp, meteo_data['precipitation(mm)'], 0)
 
@@ -100,33 +136,23 @@ def create_rain_and_snow_input(wb_df, temp_data, meteo_name, model_parameters, p
     wb_df['rain_fall(mm)'] = meteo_data['rain_fall(mm)'].resample(resolution).sum()  # [mm water equivalent]
     wb_df['snow_fall(mm)'] = meteo_data['snow_fall(mm)'].resample(resolution).sum()  # [mm water equivalent]
 
-    '''
-    # Compute Snow cover and snow melt in mm water equivalent
-    wb_df['snow_fall_sum(mm)'] = wb_df['snow_fall(mm)'].cumsum()
-    wb_df['snow_melt_pot(mm)'] = np.maximum((wb_df['mean_temperature(C)'] - melt_temp) * melt_rate, 0)
-    wb_df['snow_melt_pot_sum(mm)'] = wb_df['snow_melt_pot(mm)'].cumsum()
-    wb_df['snow_cover(mm)'] = np.maximum(wb_df['snow_fall_sum(mm)'] - wb_df['snow_melt_pot_sum(mm)'], 0)
-    wb_df['snow_melt(mm)'] = np.where(wb_df['snow_melt_pot(mm)'] < wb_df['snow_cover(mm)'], wb_df['snow_melt_pot(mm)'], wb_df['snow_cover(mm)'])
+    # set columns initially to zero
+    num_rows = len(wb_df)  # Get the number of rows from the existing DataFrame
+    wb_df['snow_melt(mm)'] = [0.0] * num_rows  # snow melt in mm water equivalent
+    wb_df['snow_cover(mm)'] = [0.0] * num_rows  # snow cover in mm water equivalent
 
-    
-    for i in range(1, len(wb_df)):
+    # iterate over df row by row to compute snow cover and snow melt
+    y = wb_df.index.tolist()[0]
+    for i in wb_df.index.tolist():
         # Compute Snow melt
-        wb_df.at[i, 'snow_melt(mm)'] = np.minimum(melt_rate * (wb_df.at[i, 'mean_temperature(C)'] - melt_temp),
-                                                  wb_df.at[i - 1, 'snow_cover(mm)'])
+        if wb_df['mean_temperature(C)'][i] > melt_temp:
+            wb_df.loc[i, 'snow_melt(mm)'] = np.minimum(melt_rate * (wb_df['mean_temperature(C)'][i] - melt_temp),
+                                                       wb_df['snow_cover(mm)'][y])
 
-        # Compute Snow cover (SC)
-        wb_df.at[i, 'snow_cover(mm)'] = (wb_df.at[i - 1, 'snow_cover(mm)'] - wb_df.at[i, 'snow_melt(mm)'] +
-                                         wb_df.at[i, 'snow_fall(mm)'])
-    
-    wb_df['snow_fall_sum(mm)'] = wb_df['snow_fall(mm)'].cumsum()
-    wb_df['snow_cover(mm)'] = wb_df['snow_cover(mm)'].shift(1) - wb_df['snow_melt(mm)'] + wb_df['snow_fall(mm)']
-
-    # Compute Snow melt
-    wb_df['snow_melt(mm)'] = np.minimum(k * (wb_df['T_b'] - Tsm), wb_df['snow_cover(mm)'].shift(1))
-
-    # Compute Snow cover (SC)
-    wb_df['snow_cover(mm)'] = wb_df['snow_cover(mm)'].shift(1) - wb_df['snow_melt(mm)'] + wb_df['snow_fall(mm)']
-    '''
+        # Compute Snow cover
+        wb_df.loc[i, 'snow_cover(mm)'] = (wb_df['snow_cover(mm)'][y] - wb_df['snow_melt(mm)'][i] +
+                                          wb_df['snow_fall(mm)'][i])
+        y = i  # current day is new yesterday
 
     return wb_df
 
@@ -142,8 +168,6 @@ def create_model_parameter_columns(wb_df):
     num_rows = len(wb_df)  # Get the number of rows from the existing DataFrame
     # Add columns for model variables with initial values of 0
     wb_df['aET(mm)'] = [0.0] * num_rows  # actual evapotranspiration
-    wb_df['snow_melt(mm)'] = [0.0] * num_rows  # snow melt in mm water equivalent
-    wb_df['snow_cover(mm)'] = [0.0] * num_rows  # snow cover in mm water equivalent
     wb_df['storage_soil(mm)'] = [0.0] * num_rows  # water saturation in the soil reservoir
     wb_df['storage_gw(mm)'] = [0.0] * num_rows  # water storage in the groundwater reservoir
     wb_df['runoff(mm)'] = [0.0] * num_rows  # surface runoff
@@ -153,8 +177,10 @@ def create_model_parameter_columns(wb_df):
     return wb_df
 
 
-def create_model_input_df(spring_name, meteo_name, fixed_parameters, variable_parameters, path_to_data_folder, resolution='D'):
+def create_model_input_df(spring_name, meteo_name, fixed_parameters, variable_parameters, path_to_data_folder, optimize=False, resolution='D'):
     # create a dataframe to store the water balance model timeseries
+    wb_df = initialize_wb_df(spring_name, path_to_data_folder, optimize)
+
     # adds a column with the measured spring_name discharge
     wb_df = create_spring_input(spring_name, path_to_data_folder, variable_parameters, resolution)
 
