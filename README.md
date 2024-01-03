@@ -7,4 +7,5 @@ Master Project at ETH Zürich based on the [WABESense](https://www.aramis.admin.
 [Ramun Bär]()  
 
 ## Description
+The complete code (including the finished AR()-Models) and data can be accessed with this link: https://www.polybox.ethz.ch/index.php/s/pFbfqVqByOSofGh
 The developed code is contained in multiple folders. The data folder contains all required data including the preprocessed spring and meteo data that is used for the models.
