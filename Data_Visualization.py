@@ -323,6 +323,7 @@ def plot_spring_mc_static(mc_data,spring_name, resampled_spring_data_dfs,
         print(mc_data)
         print(spring_df)
 
+
 def plot_spring_precipitation_static(spring_name, meteo_names, resampled_spring_data_dfs, resampled_precip_data_dfs, save_path, name_extension, resolution=('H', 'D'), start=None, end=None):
     # Define color codes
     spring_c = 'blue'
@@ -677,73 +678,89 @@ def save_static_peak_plot(name, time_series, smoothed_signal, peaks, save_path):
                linewidths=2, label='Detected Peaks', zorder=2)
 
     # Customize the layout of the plot
+    ax.grid(axis='y', linestyle='-', alpha=0.7)
     ax.tick_params(axis='x', rotation=45)
     ax.set_ylabel('Discharge [L/min]')
-    ax.set_title(f'Peak Detection for spring_name {name}')
+    #ax.set_title(f'Peak Detection for spring {name}')
     ax.legend()
 
     #ax.set_xlim([pd.to_datetime('2021-10-01'), pd.to_datetime('2022-07-20')])
     #ax.set_ylim([-5, 300])
 
     # Save the plot as a PDF
-    fig.savefig(os.path.join(save_path, f'{name}.pdf'), bbox_inches='tight')
+    fig.savefig(os.path.join(save_path, f'{name}_peaks.pdf'), bbox_inches='tight')
     plt.close(fig)
 
 
-def plot_peak_width_boxplots(spring_peaks_dfs, save_path, show_labels=True):
+def plot_peak_width_boxplots(spring_peaks_dfs, save_path, show_labels=False):
     # Create a list to store the peak width data for each dataset
     peak_width_data = []
-    selected_springs = ['Paliu_Fravi', 'Ulrika']
+    selected_springs = sorted(list(spring_peaks_dfs.keys()))
+
+    if show_labels:
+        selected_springs = ['Paliu_Fravi', 'Ulrika']
 
     # Extract the peak width data from each data frame and store it in the list
     for dataset_name, dataset_df in {key: spring_peaks_dfs[key] for key in selected_springs}.items():
         peak_width_data.append(dataset_df['Peak Width(h)'])
 
     # Create a Matplotlib figure and axis
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 4))
+    fs = 11
 
-    # Create a box plot for each dataset's peak width data
-    #ax.boxplot(peak_width_data)
+    if show_labels:  # currently set for two springs
+        # Create a box plot for each dataset's peak width data
+        positions = [0.8, 1.5]
+        box = ax.boxplot(peak_width_data, showmeans=True, positions=positions)
 
-    # Create a box plot for each dataset's peak width data
-    box = ax.boxplot(peak_width_data, showmeans=True)
+        # Set the spring_name names as x-axis labels
+        #ax.set_xticklabels({key: spring_peaks_dfs[key] for key in selected_springs}.keys(), rotation=0, fontsize=fs)
+        ax.set_xticklabels(selected_springs, rotation=0, fontsize=fs)
 
-    # Set the spring_name names as x-axis labels
-    ax.set_xticklabels({key: spring_peaks_dfs[key] for key in selected_springs}.keys(), rotation=0)
 
-    # Add numbers and labels on the plot
-    if show_labels:
-        fs = 12
+        # Add numbers and labels on the plot
+
         for i, vals in enumerate(peak_width_data):
             mean_val = np.mean(vals)
-            ax.text(i + 1.1, mean_val, f'{mean_val:.1f}', ha='left', va='center', color='#519e3e', fontsize=fs)
+            ax.text(positions[i]-1 + 1.1, mean_val, f'{mean_val:.1f}', ha='left', va='center', color='#519e3e', fontsize=fs)
 
             median_val = np.median(vals)
-            ax.text(i + 1.1, median_val, f'{median_val:.1f}', ha='left', va='center', color='darkorange', fontsize=fs)
+            ax.text(positions[i]-1 + 1.1, median_val, f'{median_val:.1f}', ha='left', va='center', color='darkorange', fontsize=fs)
 
             # Add labels for lower and upper quartiles
             lower_q = np.percentile(vals, 25)
             upper_q = np.percentile(vals, 75)
 
-            ax.text(i + 0.9, lower_q, f'{lower_q:.1f}', ha='right', va='center', color='black', fontsize=fs)
-            ax.text(i + 0.9, upper_q, f'{upper_q:.1f}', ha='right', va='center', color='black', fontsize=fs)
+            ax.text(positions[i]-1 + 0.9, lower_q, f'{lower_q:.1f}', ha='right', va='center', color='black', fontsize=fs)
+            ax.text(positions[i]-1 + 0.9, upper_q, f'{upper_q:.1f}', ha='right', va='center', color='black', fontsize=fs)
 
         # Add labels for the box, mean, and median
         for i, box_line in enumerate(box['medians']):
-            #ax.text(i + 1, box_line.get_ydata()[0], 'Median', ha='center', va='bottom', color='green')
+            ax.text(positions[i]-1 + 1.33, box_line.get_ydata()[0], 'Median', ha='center', va='center', color='darkorange',
+                    fontsize=fs)
 
-            mean_x = i + 1.2
+            mean_x = positions[i]-1 + 1.25
             mean_y = np.mean(box['means'][i].get_ydata())
-            #ax.text(mean_x, mean_y, 'Mean', ha='left', va='center', color='blue')
+            ax.text(mean_x, mean_y, 'Mean', ha='left', va='center', color='#519e3e', fontsize=fs)
 
+    else:  # no labels on the plot
+        # Create a box plot for each dataset's peak width data
+        ax.boxplot(peak_width_data)
+        ax.set_xticklabels(selected_springs, rotation=90, fontsize=fs)
+
+    # Set the y-axis limits
+    ax.set_ylim(0, 550)
     # Set labels and title
-    ax.set_ylabel('Peak Width (hours)')
+    ax.set_ylabel('Peak Width (hours)', fontsize=fs)
     #ax.set_xlabel('Springs')
     #ax.set_title('Peak Width Box Plots')
+    ax.tick_params(axis='x', labelsize=fs)
+    ax.tick_params(axis='y', labelsize=fs)
+    ax.grid(axis='y', linestyle='-', alpha=0.7)
 
     # Show the plot
     plt.show()
 
     # Save the plot as a PDF
     Helper.create_directory(save_path)
-    fig.savefig(os.path.join(save_path, 'spring_peaks_boxplots_selected_springs.pdf'), bbox_inches='tight')
+    fig.savefig(os.path.join(save_path, 'spring_peaks_boxplots_all_springs.pdf'), bbox_inches='tight')

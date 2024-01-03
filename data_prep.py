@@ -3,15 +3,16 @@ from Water_Balance_Model import wb_Initialization
 from Data import datafolder
 
 spring_name = 'Ulrika'
-meteo_names = ['Freienbach', 'Oberriet_Kriessern']
+for spring_name in ['Ulrika', 'Paliu_Fravi']:
+    if spring_name == 'Ulrika':
+        meteo_names_precip = ['Freienbach', 'Oberriet_Kriessern']
+        meteo_names_temp = ['Freienbach', 'Oberriet_Moos']
+    elif spring_name == 'Paliu_Fravi':
+        meteo_names_precip = ['Chur', 'Rothenbrunnen']
+        meteo_names_temp = ['Chur', 'Thusis']
 
+    wb_discharge = wb_Data_preparation.create_model_input_discharge(spring_name, datafolder)
 
-wb_discharge = wb_Data_preparation.create_model_input_discharge(spring_name, datafolder)
+    wb_precip = wb_Data_preparation.create_model_input_precipitation(spring_name, meteo_names_precip, datafolder)
 
-wb_precip = wb_Data_preparation.create_model_input_precipitation(spring_name, meteo_names, datafolder)
-
-elevation_difference = 647-415  # [m] elevation difference between meteo stations relative to first station
-wb_temp = wb_Data_preparation.create_model_input_temperature(spring_name, meteo_names, elevation_difference, datafolder)
-
-wb_df = wb_Initialization.initialize_wb_df(spring_name, datafolder, False)
-wb_df.to_csv('wb_df_init.csv', index=True)
+    wb_temp = wb_Data_preparation.create_model_input_temperature(spring_name, meteo_names_temp, datafolder)

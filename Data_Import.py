@@ -146,7 +146,12 @@ def create_dataframe_from_data_list(data_list, delimiter=';'):
     # Create a dictionary to store data for each column
     data_dict = {col: [] for col in header}
     # Infer datetime format based on the number of characters in the 'time' column
-    time_format = '%Y%m%d%H' if len(data_list[1].split(delimiter)[1]) == 10 else '%Y%m%d%H%M'
+    if len(data_list[1].split(delimiter)[1]) == 10:
+        time_format = '%Y%m%d%H'
+    elif len(data_list[1].split(delimiter)[1]) == 8:
+        time_format = '%Y%m%d'
+    else:
+        time_format = '%Y%m%d%H%M'
 
     # Iterate through the data lines and split values accordingly
     for line in data_list[1:]:

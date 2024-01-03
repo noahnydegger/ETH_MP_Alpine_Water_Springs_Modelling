@@ -1,0 +1,68 @@
+###
+# Metadata file for a spring
+#
+
+canton: GR
+location: Schiers
+building: BS
+spring: Chalta Wasser
+
+###
+# The coordinates indicate the position of the spring capture.
+# Retrieved from: https://edit.geo.gr.ch/theme/Gewaesserschutz
+#
+coordinates:
+  LV03: [777142, 204938]
+  WGS84:
+    latitude: "46° 58' 19'' N"
+    longitude: "9° 46' 01'' E"
+
+###
+# The following sections describe time intervals with some properties.
+#
+# They contain lists of dictionaries, each dictionary describing an interval.
+# Each dictionary must contain the **start**, **end**, and **description** fields.
+# Where **start** and **end** are timedates, and **description** is a free text explanation
+# of the interval, e.g. why the data is invalid.
+#
+# An optional field **time-zone** can be given on each dictionary to indicate the
+# time-zone of that interval. If not given, the interval is interpreted as UTC.
+#
+
+###
+# Description of measurement setup
+# All units should be SI.
+#
+measurement-setup:
+  - start: 2021-01-01 00:00:00.00
+    end: 2021-07-19 00:00:00.00
+    hQ0: 26.15e-2
+    time-zone: Europe/Zurich
+    description: sensor connected on tap for taking water samples
+
+  - start: 2021-07-19 00:00:01.00
+    end:
+    hQ0: 20.25e-2
+    time-zone: Europe/Zurich
+    description: sensor connected on a T-adapter on tap for taking water samples.
+
+###
+# Periods of invalid data.
+#
+invalid-data:
+  - start: 2021-01-01 00:00:00.00
+    end: 2021-11-13 00:00:00.00
+    time-zone: Europe/Zurich
+    description: data generated during testing and setup (unreliable)
+
+  - start: 2022-06-02 11:00:00.00
+    end: 2022-06-09 10:35:00.00
+    time-zone: UTC
+    description: cleaning operations
+
+  - start: 2022-07-19 00:00:00.00
+    end: 2022-09-15 00:00:00.00
+    time-zone: Europe/Zurich
+    description: Logger update
+
+

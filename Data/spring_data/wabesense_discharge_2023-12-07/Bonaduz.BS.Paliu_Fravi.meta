@@ -1,0 +1,62 @@
+###
+# Metadata file for a spring
+#
+
+canton: GR
+location: Bonaduz
+building: BS
+spring: Paliu Fravi
+
+###
+# The coordinates indicate the position of the spring capture.
+# Retrieved from: https://edit.geo.gr.ch/theme/Gewaesserschutz
+#
+coordinates:
+  LV03: [747553, 185238]
+  WGS84:
+    latitude: "46° 48' 07'' N"
+    longitude: "9° 22' 18'' E"
+
+###
+# The following sections describe time intervals with some properties.
+#
+# They contain lists of dictionaries, each dictionary describing an interval.
+# Each dictionary must contain the **start**, **end**, and **description** fields.
+# Where **start** and **end** are timedates, and **description** is a free text explanation
+# of the interval, e.g. why the data is invalid.
+#
+# An optional field **time-zone** can be given on each dictionary to indicate the
+# time-zone of that interval. If not given, the interval is interpreted as UTC.
+#
+
+###
+# Description of measurement setup
+# All units should be SI.
+#
+measurement-setup:
+  - start: 2021-01-01 00:00:00.00
+    end: 2022-11-10 00:00:00.00
+    hQ0: 29.6e-2
+    time-zone: Europe/Zurich
+    description: sensor connected on tap for taking water samples
+
+  - start: 2022-11-10 00:00:01.00
+    end:
+    hQ0: 23.7e-2
+    time-zone: Europe/Zurich
+    description: sensor connected on a T-adapter on tap for taking water samples.
+
+###
+# Periods of invalid data.
+#
+invalid-data:
+  - start: 2021-01-01 00:00:00.00
+    end: 2021-02-04 13:40:00.00
+    time-zone: Europe/Zurich
+    description: data generated during the first test (unreliable)
+
+  - start: 2022-08-30 21:00:00.00
+    end: 2022-11-10 18:00:00.00
+    time-zone: Europe/Zurich
+    description: Logger battery too low for correct measurements.
+

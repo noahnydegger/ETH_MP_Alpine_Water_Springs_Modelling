@@ -1,165 +1,81 @@
 import pandas as pd  # data processing
 import numpy as np  # data processing
 from datetime import datetime, timedelta
-import os
+import pathlib
+import pickle
 
 
 def get_catchment_parameters(spring_name):
     # Catchment properties
     if spring_name == 'Ulrika':
         fixed_parameters = {
-            'latitude': 46.5,  # mean Latitude [deg]
-            'elevation': 1590  # mean elevation [masl]
+            'latitude': 47.3,  # mean Latitude [deg]
+            'elevation_difference': 750 - 647  # mean elevation [masl]
         }
     elif spring_name == 'Paliu_Fravi':
         fixed_parameters = {
-            'latitude': 46.5,  # mean Latitude [deg]
-            'elevation': 1590  # mean elevation [masl]
+            'latitude': 46.8,  # mean Latitude [deg]
+            'elevation_difference': 900 - 562  # mean elevation [masl]
         }
+
+    fixed_parameters['melting_temperature'] = 0.0,  # Temperature threshold for melting [deg Celsius]
+    fixed_parameters['temperature_lapse_rate'] = -0.5 / 100  # Lapse rate for temperature [deg Celsius/1m elevation]
+    fixed_parameters['melting_rate'] = 0.8  # Daily degree-day snow melt parameter [mm/day/degC]
+
     return fixed_parameters
 
 
-def get_model_parameters():
-    # Model parameters
-    variable_parameters = {
-        'area': 389459,  # estimated area [m ^ 2]
-        'storage_capacity': 15.0,  # Soil zone storage capacity [mm]
-        'residence_time': 10.0,  # Ground water linear reservoir constant, mean residence time [days]
-        'melting_rate': 0.8,  # Daily degree-day snow melt parameter [mm/day/degC]
-        'runoff_fraction': 0.05,  # Fraction of basin area that is generating surface runoff [0-1]
-        'melting_temperature': 0.0,  # Temperature threshold for melting [deg Celsius]
-        'temperature_lapse_rate': 0.5 / 100  # Lapse rate for temperature [deg Celsius/1m elevation]
-    }
-
-    # Hamon PET parameters (constant, do not change):
-    pet_Hamon_parameters = {
-        'PETa': 0.6108,
-        'PETb': 17.27,
-        'PETc': 237.3
-    }
-
-    return variable_parameters, pet_Hamon_parameters
-
-
-def initialize_wb_df(spring_name, path_to_data_folder, optimize):
-    var = 'discharge'
-    pkl_file_path = path_to_data_folder / 'water_balance_model' / spring_name / f'wb_{spring_name}_{var}.pkl'
-    wb_df = pd.read_pickle(pkl_file_path)
-
-    for var in ['temperature', 'precipitation']:
-        pkl_file_path = path_to_data_folder / 'water_balance_model' / spring_name / f'wb_{spring_name}_{var}.pkl'
-        var_data = pd.read_pickle(pkl_file_path)
-        var_data.rename(columns={'valid': f'valid_{var}'}, inplace=True)
-        if optimize:
-            wb_df = wb_df.merge(var_data, how='left', left_index=True,
-                        right_index=True)
-            wb_df['valid'] = np.where(wb_df[f'valid_{var}'], wb_df['valid'], False)
-        else:
-            wb_df = wb_df.merge(var_data, how='outer', left_index=True,
-                                right_index=True)
-            wb_df['valid'].fillna(False, inplace=True)
-            wb_df['valid'] = np.where(wb_df[f'valid_{var}'], wb_df['valid'], False)
-
-        wb_df.drop(columns=f'valid_{var}', inplace=True)
-
-    return wb_df
-
-
-def create_spring_input(spring_name, path_to_data_folder, variable_parameters, resolution='D'):
-    # load spring_name data
-    spring_data = import_data_from_csv_file(find_file_by_name(f'{spring_name}_{resolution}',
-                                                              path_to_data_folder, 'csv'))
-
-    # Create a DataFrame to store model variables
-    wb_df = pd.DataFrame(index=spring_data.index)
-    wb_df['doy'] = wb_df.index.dayofyear  # Julien day = day of the year
-    wb_df['valid'] = True  # set to False later, where spring or meteo data is missing
-
-    wb_df['discharge_meas(L/min)'] = spring_data['discharge(L/min)']
-
-    # exclude (set valid to False) data gaps and invalid measurements from the calibration period
-    wb_df['valid'] = np.where(wb_df['discharge_meas(L/min)'].isna(), False, wb_df['valid'])
-    wb_df['valid'] = np.where(wb_df['discharge_meas(L/min)'] < 5.0, False, wb_df['valid'])
+def get_model_parameters(spring_name):
+    # Model parameters_for_df: best parameters_for_df so far
     if spring_name == 'Ulrika':
-        wb_df['valid'] = np.where(wb_df['discharge_meas(L/min)'] > 2000.0, False, wb_df['valid'])
-    return wb_df
+        variable_parameters = {
+            'area': 127091.2775,#194854.08,# 389459,  # estimated area [m ^ 2]
+            'storage_capacity': 5.0208,  # Soil zone storage capacity [mm]
+            'residence_time': 11.9657,#26.0,  # Ground water linear reservoir constant, mean residence time [days]
+            'runoff_fraction': 0.01027,  # Fraction of basin area that is generating surface runoff [0-1]
+            'melting_rate': 5.8371#0.8  # Daily degree-day snow melt parameter [mm/day/degC]
+        }
+    elif spring_name == 'Paliu_Fravi':
+        variable_parameters = {
+            'area': 181820.3138,  # estimated area [m ^ 2]
+            'storage_capacity': 13.3589,  # Soil zone storage capacity [mm]
+            'residence_time': 26.9823,  # Ground water linear reservoir constant, mean residence time [days]
+            'runoff_fraction': 0.0991,  # Fraction of basin area that is generating surface runoff [0-1]
+            'melting_rate': 1.8522#0.8  # Daily degree-day snow melt parameter [mm/day/degC]
+        }
+
+    return variable_parameters
 
 
-def create_temperature_input(wb_df, meteo_name, path_to_data_folder, resolution):
-
-    # load temperature data
-    temp_data = import_data_from_csv_file(find_file_by_name(f'{meteo_name}_temp_H',
-                                                            path_to_data_folder, 'csv'))
-
-    # add a column with min temperature
-    wb_df = wb_df.merge(temp_data['temperature(C)'].resample(resolution).min(), how='left', left_index=True,
-                        right_index=True)
-    wb_df.rename(columns={'temperature(C)': 'min_temperature(C)'}, inplace=True)
-    wb_df['valid'] = np.where(wb_df['min_temperature(C)'].isna(), False, wb_df['valid'])
-
-    wb_df['min_temperature(C)'].ffill().bfill(inplace=True)
-
-    # add a column with max temperature
-    wb_df = wb_df.merge(temp_data['temperature(C)'].resample(resolution).max(), how='left', left_index=True,
-                        right_index=True)
-    wb_df.rename(columns={'temperature(C)': 'max_temperature(C)'}, inplace=True)
-    wb_df['max_temperature(C)'].ffill().bfill(inplace=True)
-
-    # add a column with mean temperature
-    wb_df['mean_temperature(C)'] = wb_df[['min_temperature(C)', 'max_temperature(C)']].mean(axis=1)
-
-    return wb_df, temp_data
-
-
-def create_rain_and_snow_input(wb_df, temp_data, meteo_name, variable_parameters, path_to_data_folder, resolution):
-    # load precipitation data
-    precip_data = import_data_from_csv_file(find_file_by_name(f'{meteo_name}_precip_H',
-                                                              path_to_data_folder, 'csv'))
-    precip_data.rename(columns={'rre150h0': 'precipitation(mm)'}, inplace=True)
-
-    # add a column with precipitation
-    wb_df = wb_df.merge(precip_data['precipitation(mm)'].resample(resolution).sum(), how='left', left_index=True, right_index=True)
-
-    # exclude (set valid to False) data gaps from the calibration period
-    wb_df['valid'] = np.where(wb_df['precipitation(mm)'].isna(), False, wb_df['valid'])
-    #wb_df['precipitation(mm)'].fillna(0, inplace=True)
-
-    meteo_data = precip_data.merge(temp_data['temperature(C)'], how='inner', left_index=True, right_index=True)
-
+def create_rain_and_snow_input(wb_df, fixed_parameters):
     # compute rain fall and snow fall with hourly resolution depending on snow melt temperature
-    melt_rate = variable_parameters['melting_rate']
-    melt_temp = variable_parameters['melting_temperature']
-    meteo_data['rain_fall(mm)'] = np.where(meteo_data['temperature(C)'] > melt_temp, meteo_data['precipitation(mm)'], 0)
-    meteo_data['snow_fall(mm)'] = np.where(meteo_data['temperature(C)'] < melt_temp, meteo_data['precipitation(mm)'], 0)
-
-    # aggregate rain and snow fall data
-    wb_df['rain_fall(mm)'] = meteo_data['rain_fall(mm)'].resample(resolution).sum()  # [mm water equivalent]
-    wb_df['snow_fall(mm)'] = meteo_data['snow_fall(mm)'].resample(resolution).sum()  # [mm water equivalent]
+    melt_rate = fixed_parameters['melting_rate']
+    melt_temp = fixed_parameters['melting_temperature']
+    wb_df['rain_fall(mm)'] = np.where(wb_df['temperature(C)'] >= melt_temp, wb_df['precipitation(mm)'], 0)
+    wb_df['snow_fall(mm)'] = np.where(wb_df['temperature(C)'] < melt_temp, wb_df['precipitation(mm)'], 0)
 
     # set columns initially to zero
     num_rows = len(wb_df)  # Get the number of rows from the existing DataFrame
     wb_df['snow_melt(mm)'] = [0.0] * num_rows  # snow melt in mm water equivalent
     wb_df['snow_cover(mm)'] = [0.0] * num_rows  # snow cover in mm water equivalent
 
-    # iterate over df row by row to compute snow cover and snow melt
-    y = wb_df.index.tolist()[0]
-    for i in wb_df.index.tolist():
-        # Compute Snow melt
-        if wb_df['mean_temperature(C)'][i] > melt_temp:
-            wb_df.loc[i, 'snow_melt(mm)'] = np.minimum(melt_rate * (wb_df['mean_temperature(C)'][i] - melt_temp),
-                                                       wb_df['snow_cover(mm)'][y])
-
-        # Compute Snow cover
-        wb_df.loc[i, 'snow_cover(mm)'] = (wb_df['snow_cover(mm)'][y] - wb_df['snow_melt(mm)'][i] +
-                                          wb_df['snow_fall(mm)'][i])
-        y = i  # current day is new yesterday
-
     return wb_df
 
 
-def create_potential_evapotranspiration_input(wb_df, resolution):
-    num_rows = len(wb_df)  # Get the number of rows from the existing DataFrame
-    wb_df['pET(mm)'] = [0] * num_rows  # potential evapotranspiration
+def create_potential_evapotranspiration_input(wb_df, fixed_parameters):
+    lat = fixed_parameters['latitude']
+
+    # calculate the pet parameters_for_df
+    wb_df['delta'] = 0.4093 * np.sin((2 * np.pi / 365) * wb_df['doy'] - 1.405)
+    wb_df['omega_s'] = np.arccos(-np.tan(2 * np.pi * lat / 360) * np.tan(wb_df['delta']))
+    wb_df['daytime_hours'] = 24 * wb_df['omega_s'] / np.pi
+    wb_df['sat_vap_pres'] = 0.6108 * np.exp(17.27 * wb_df['temperature(C)'] / (wb_df['temperature(C)'] + 237.3))
+    wb_df['pET(mm)'] = np.where(wb_df['temperature(C)'] < 0, 0,
+                                2.1 * (wb_df['daytime_hours']**2) * wb_df['sat_vap_pres']) / (wb_df['temperature(C)'] + 273.3)
+
+
+    # remove the pet parameter columns
+    wb_df.drop(columns=['delta', 'omega_s', 'daytime_hours', 'sat_vap_pres'], inplace=True)
 
     return wb_df
 
@@ -177,62 +93,143 @@ def create_model_parameter_columns(wb_df):
     return wb_df
 
 
-def create_model_input_df(spring_name, meteo_name, fixed_parameters, variable_parameters, path_to_data_folder, optimize=False, resolution='D'):
-    # create a dataframe to store the water balance model timeseries
-    wb_df = initialize_wb_df(spring_name, path_to_data_folder, optimize)
+def resample_model_input_to_daily(wb_df, fixed_parameters):
+    wb_df_D = wb_df.resample('D').agg({'doy': 'last',
+                                       'valid_spring': 'all',
+                                       'valid_meteo': 'all',
+                                       'valid': 'all',
+                                       'optimization_period': 'first',
+                                       'calibration_period': 'first',
+                                       'validation_period': 'first',
+                                       'final_validation_period': 'first',
+                                       'discharge_meas(L/min)': 'mean',
+                                       'precipitation(mm)': 'sum',
+                                       'rain_fall(mm)': 'sum',
+                                       'snow_fall(mm)': 'sum',
+                                       'snow_melt(mm)': 'sum',
+                                       'snow_cover(mm)': 'last'
+                                       })
+    # add a column with mean temperature
+    # Resample temperature to daily minimum and maximum
+    temp_resampled = wb_df['temperature(C)'].resample('D').agg(['min', 'max'])
+    # Calculate the mean temperature as the daily average of min and max
+    mean_temp = temp_resampled.mean(axis=1)
+    # Add the temperature column at a specific position
+    wb_df_D.insert(9, 'temperature(C)', mean_temp)
 
-    # adds a column with the measured spring_name discharge
-    wb_df = create_spring_input(spring_name, path_to_data_folder, variable_parameters, resolution)
+    wb_df_D = create_potential_evapotranspiration_input(wb_df_D, fixed_parameters)
 
-    # adds column with min, max, mean temperature
-    wb_df, temp_data = create_temperature_input(wb_df, meteo_name, path_to_data_folder, resolution)
+    wb_df_D = create_model_parameter_columns(wb_df_D)
 
-    # adds column with precipitation, rain fall, snow fall, snow cover, snow melt
-    wb_df = create_rain_and_snow_input(wb_df, temp_data, meteo_name, variable_parameters, path_to_data_folder, resolution)
+    return wb_df_D
 
-    wb_df = create_potential_evapotranspiration_input(wb_df, resolution)
 
-    # adds empty columns for the model calculations
-    wb_df = create_model_parameter_columns(wb_df)
+def initialize_wb_df(spring_name, fixed_parameters, path_to_data_folder):
+    var = 'discharge'
+    pkl_file_path = path_to_data_folder / 'water_balance_model' / spring_name / f'wb_{spring_name}_{var}.pkl'
+    wb_df = pd.read_pickle(pkl_file_path)
+    wb_df.rename(columns={'discharge(L/min)': 'discharge_meas(L/min)', 'valid': 'valid_spring'}, inplace=True)
+    wb_df['valid_meteo'] = True
+
+    for var in ['temperature', 'precipitation']:
+        pkl_file_path = path_to_data_folder / 'water_balance_model' / spring_name / f'wb_{spring_name}_{var}.pkl'
+        var_data = pd.read_pickle(pkl_file_path)
+        var_data.rename(columns={'valid': f'valid_{var}'}, inplace=True)
+        # merge new variable data
+        wb_df = wb_df.merge(var_data, how='outer', left_index=True,
+                            right_index=True)
+        # set new dates to false
+        wb_df['valid_spring'].fillna(False, inplace=True)
+
+        # set valid_meteo to false where valid_var is false
+        wb_df['valid_meteo'] = np.where(wb_df[f'valid_{var}'], wb_df['valid_meteo'], False)
+        # remove the row containing valid for the current variable
+        wb_df.drop(columns=f'valid_{var}', inplace=True)
+
+    # make a columm for the calculation of the gof
+    wb_df['valid'] = wb_df['valid_spring'] & wb_df['valid_meteo']
+    wb_df['doy'] = wb_df.index.dayofyear  # Julien day = day of the year
+
+    # correct the temperature with the elevation difference between the catchment and the main meteo station
+    elev_diff = fixed_parameters['elevation_difference']
+    lapse_rate = fixed_parameters['temperature_lapse_rate']
+    wb_df['temperature(C)'] = wb_df['temperature(C)'] + elev_diff * lapse_rate
+
+    # set calibration, validation periods
+    if spring_name == 'Ulrika':
+        # calibration # data gap between 2021-08-16 to 2021-10-13 and 2022-05-02 to 2022-08-02
+        start_date_cal = wb_df.index[wb_df['valid']].min() - pd.DateOffset(months=1)
+        end_date_cal = pd.to_datetime('2022-09-15').tz_localize('UTC')
+        # validation
+        start_date_val = end_date_cal + pd.Timedelta(days=1)
+        end_date_val = pd.to_datetime('2023-08-31').tz_localize('UTC')
+        # final validation
+        start_date_final = end_date_val + pd.Timedelta(days=1)
+    elif spring_name == 'Paliu_Fravi':
+        # calibration
+        start_date_cal = pd.to_datetime('2021-10-25').tz_localize('UTC')
+        end_date_cal = pd.to_datetime('2022-8-31').tz_localize('UTC')  # valid until 2022-08-29
+        # validation
+        start_date_val = end_date_cal + pd.Timedelta(days=1)  # valid from 2022-11-11
+        end_date_val = pd.to_datetime('2023-08-31').tz_localize('UTC')
+        # final validation
+        start_date_final = end_date_val + pd.Timedelta(days=1)
+
+    wb_df['calibration_period'] = (wb_df.index >= start_date_cal) & (wb_df.index <= end_date_cal)
+    wb_df['validation_period'] = (wb_df.index >= start_date_val) & (wb_df.index <= end_date_val)
+    wb_df['final_validation_period'] = (wb_df.index >= start_date_final)
+
+    # add a column specifying the date range for the optimization
+    # use data until end of August for the optimization, keep September for testing
+    # optimization period
+    wb_df['optimization_period'] = (wb_df.index >= start_date_cal) & (wb_df.index <= end_date_val)
 
     return wb_df
 
 
-def initialize_model(spring_name, path_to_data_folder):
-    if spring_name == 'Ulrika':
-        meteo_name = 'Freienbach'
-    elif spring_name == 'Paliu_Fravi':
-        meteo_name = 'Chur'
-    else:
+def create_model_input_df(spring_name, fixed_parameters, path_to_data_folder, resolution):
+    # create a dataframe to store the water balance model timeseries with hourly resolution
+    wb_df = initialize_wb_df(spring_name, fixed_parameters, path_to_data_folder)
+
+    # adds column with rain fall, snow fall, snow cover, snow melt
+    wb_df = create_rain_and_snow_input(wb_df, fixed_parameters)
+
+    # adds empty columns for the model calculations
+    wb_df = create_model_parameter_columns(wb_df)
+
+    if resolution == 'D':
+        wb_df = resample_model_input_to_daily(wb_df, fixed_parameters)
+
+    return wb_df
+
+
+def initialize_model(spring_name, path_to_data_folder, resolution, optimize):
+    if not spring_name in ['Ulrika', 'Paliu_Fravi']:
         raise ValueError(f"expected 'Ulrika' or 'Paliu_Fravi' as spring_name but got {spring_name}.")
 
+    if not resolution in ['H', 'D']:
+        raise ValueError(f"expected 'H' or 'D' as resolution but got {resolution}.")
+
     fixed_parameters = get_catchment_parameters(spring_name)
-    variable_parameters, pet_Hamon_parameters = get_model_parameters()
-    wb_df = create_model_input_df(spring_name, meteo_name, fixed_parameters, variable_parameters, path_to_data_folder)
+    variable_parameters = get_model_parameters(spring_name)
+
+    wb_df_name = f'wb_{spring_name}_input_{resolution}.pkl'
+    wb_df_path = path_to_data_folder / 'water_balance_model' / spring_name / wb_df_name
+
+    if wb_df_path.exists():
+        # Load the DataFrame from the pickle file
+        with open(wb_df_path, 'rb') as file:
+            wb_df = pickle.load(file)
+        print(f'{wb_df_name} loaded')
+    else:
+        wb_df = create_model_input_df(spring_name, fixed_parameters, path_to_data_folder, resolution)
+        wb_df.to_pickle(wb_df_path)
+        wb_df.to_csv(wb_df_path.with_suffix('.csv'))
+        print(f'{wb_df_name} created')
+
+    # select subsection for faster optimization
+    if optimize:
+        # Drop rows where column 'B' is False in-place
+        wb_df.drop(wb_df[~wb_df['optimization_period']].index, inplace=True)
 
     return fixed_parameters, variable_parameters, wb_df
-
-
-def find_file_by_name(filename, startFolder, filetype):
-    # search for the filepath of a single file
-    if filetype.lower() not in filename.lower():
-        filename = '{}.{}'.format(filename, filetype.lower())  # add filetype
-
-    filefound = False
-    for root, dirs, files in os.walk(startFolder):  # Walking top-down from the startFolder looking for the file
-        if filename.lower() in [file.lower() for file in files]:
-            filefound = True
-            path_to_file = os.path.join(root, filename)
-
-    if not filefound:
-        path_to_file = ''
-        print('{} not found within directory {}'.format(filename, startFolder))
-    return path_to_file
-
-
-def import_data_from_csv_file(filepath):
-    df = pd.read_csv(filepath)  # read csv
-    df['datetime'] = pd.to_datetime(df['datetime'])
-    # convert column to datetime format
-    df.set_index('datetime', inplace=True)  # set date as index
-    return df
